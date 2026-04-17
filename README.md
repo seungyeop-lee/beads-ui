@@ -14,7 +14,8 @@
   <br>
 </div>
 
-> Based on [mantoni/beads-ui](https://github.com/mantoni/beads-ui). Maintained as an independent fork by [seungyeop-lee](https://github.com/seungyeop-lee).
+> Based on [mantoni/beads-ui](https://github.com/mantoni/beads-ui). Maintained
+> as an independent fork by [seungyeop-lee](https://github.com/seungyeop-lee).
 
 ## Features
 
@@ -31,6 +32,8 @@
 
 ```sh
 npm i -g @seungyeop-lee/beads-ui
+# Or with pnpm:
+# pnpm add -g @seungyeop-lee/beads-ui
 # In your project directory:
 bdui start --open
 ```
@@ -69,10 +72,10 @@ These can also be set via CLI options: `bdui start --host 0.0.0.0 --port 8080`
 
 ## Developer Workflow
 
-- 🔨 Clone the repo and run `npm install`.
-- 🚀 Start the dev server with `npm start`.
-- 🔗 Alternatively, use `npm link` to link the package globally and run
-  `bdui start` from any project.
+- 🔨 Clone the repo and run `pnpm install`.
+- 🚀 Start the dev server with `pnpm start`.
+- 🔗 Alternatively, use `pnpm link --global` to link the package globally and
+  run `bdui start` from any project.
 
 ## Debug Logging
 

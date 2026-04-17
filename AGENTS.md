@@ -153,7 +153,7 @@ configured), ask the user before configuring it, then resume the normal flow.
 
 ## Pre‑Handoff Validation
 
-- Run type checks: `npm run tsc`
-- Run tests: `npm test`
-- Run eslint: `npm run lint`
-- Run prettier: `npm run prettier:write`
+- Run type checks: `pnpm tsc`
+- Run tests: `pnpm test`
+- Run eslint: `pnpm lint`
+- Run prettier: `pnpm prettier:write`

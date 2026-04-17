@@ -18,21 +18,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: 'pnpm'
       - name: Install
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Lint
         if: matrix.node-version == '24.x'
-        run: npm run lint
+        run: pnpm lint
       - name: Types
         if: matrix.node-version == '24.x'
-        run: npm run tsc
+        run: pnpm tsc
       - name: Prettier
         if: matrix.node-version == '24.x'
-        run: npm run prettier:check
+        run: pnpm prettier:check
       - name: Test
-        run: npm test
+        run: pnpm test
