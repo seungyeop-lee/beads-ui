@@ -6,13 +6,15 @@
   Collaborate on issues with your coding agent.
 </p>
 <div align="center">
-  <a href="https://www.npmjs.com/package/beads-ui"><img src="https://img.shields.io/npm/v/beads-ui.svg" alt="npm Version"></a>
+  <a href="https://www.npmjs.com/package/@seungyeop-lee/beads-ui"><img src="https://img.shields.io/npm/v/@seungyeop-lee/beads-ui.svg" alt="npm Version"></a>
   <a href="https://semver.org"><img src="https://img.shields.io/:semver-%E2%9C%93-blue.svg" alt="SemVer"></a>
-  <a href="https://github.com/mantoni/beads-ui/actions/worflows/ci.yml"><img src="https://github.com/mantoni/eslint_d.js/actions/workflows/ci.yml/badge.svg" alt="Build Status"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/npm/l/eslint_d.svg" alt="MIT License"></a>
+  <a href="https://github.com/seungyeop-lee/beads-ui/actions/workflows/ci.yml"><img src="https://github.com/seungyeop-lee/beads-ui/actions/workflows/ci.yml/badge.svg" alt="Build Status"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/npm/l/@seungyeop-lee/beads-ui.svg" alt="MIT License"></a>
   <br>
   <br>
 </div>
+
+> Based on [mantoni/beads-ui](https://github.com/mantoni/beads-ui). Maintained as an independent fork by [seungyeop-lee](https://github.com/seungyeop-lee).
 
 ## Features
 
@@ -28,7 +30,7 @@
 ## Setup
 
 ```sh
-npm i beads-ui -g
+npm i -g @seungyeop-lee/beads-ui
 # In your project directory:
 bdui start --open
 ```
@@ -39,15 +41,15 @@ See `bdui --help` for options.
 
 **Issues**
 
-![Issues view](https://github.com/mantoni/beads-ui/raw/main/media/bdui-issues.png)
+![Issues view](https://github.com/seungyeop-lee/beads-ui/raw/main/media/bdui-issues.png)
 
 **Epics**
 
-![Epics view](https://github.com/mantoni/beads-ui/raw/main/media/bdui-epics.png)
+![Epics view](https://github.com/seungyeop-lee/beads-ui/raw/main/media/bdui-epics.png)
 
 **Board**
 
-![Board view](https://github.com/mantoni/beads-ui/raw/main/media/bdui-board.png)
+![Board view](https://github.com/seungyeop-lee/beads-ui/raw/main/media/bdui-board.png)
 
 ## Environment variables
 
