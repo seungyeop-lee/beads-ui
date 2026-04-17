@@ -11,15 +11,16 @@ import { showToast } from '../utils/toast.js';
 import { createTypeBadge } from '../utils/type-badge.js';
 
 /**
- * Format a date string for display.
+ * Format a date for display. Accepts ISO string or epoch ms.
  *
- * @param {string} [dateStr]
+ * @param {string|number|null} [value]
  * @returns {string}
  */
-function formatCommentDate(dateStr) {
-  if (!dateStr) return '';
+function formatCommentDate(value) {
+  if (value === undefined || value === null || value === '') return '';
   try {
-    const date = new Date(dateStr);
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -28,7 +29,7 @@ function formatCommentDate(dateStr) {
       minute: '2-digit'
     });
   } catch {
-    return dateStr;
+    return String(value);
   }
 }
 
@@ -65,6 +66,9 @@ function formatCommentDate(dateStr) {
  * @property {Dependency[]} [dependencies]
  * @property {Dependency[]} [dependents]
  * @property {Comment[]} [comments]
+ * @property {number} [created_at]
+ * @property {number} [updated_at]
+ * @property {(number|null)} [closed_at]
  */
 
 /**
@@ -1308,6 +1312,26 @@ export function createDetailView(
                     }
                   </div>
                 </div>
+                <div class="prop">
+                  <div class="label">Created</div>
+                  <div class="value">${formatCommentDate(issue.created_at)}</div>
+                </div>
+                <div class="prop">
+                  <div class="label">Updated</div>
+                  <div class="value">${formatCommentDate(issue.updated_at)}</div>
+                </div>
+                ${
+                  issue.status === 'closed' &&
+                  issue.closed_at !== undefined &&
+                  issue.closed_at !== null
+                    ? html`<div class="prop">
+                        <div class="label">Closed</div>
+                        <div class="value">
+                          ${formatCommentDate(issue.closed_at)}
+                        </div>
+                      </div>`
+                    : ''
+                }
               </div>
               ${labels_block}
               ${depsSection('Dependencies', issue.dependencies || [])}

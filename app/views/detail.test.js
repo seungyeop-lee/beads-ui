@@ -480,6 +480,147 @@ describe('views/detail', () => {
     expect(closeReasonProp).toBeUndefined();
   });
 
+  describe('timestamps', () => {
+    /**
+     * @param {Element | null | undefined} card
+     * @param {string} label
+     * @returns {Element | undefined}
+     */
+    function findProp(card, label) {
+      if (!card) return undefined;
+      const props = card.querySelectorAll('.prop');
+      return Array.from(props).find(
+        (p) => p.querySelector('.label')?.textContent === label
+      );
+    }
+
+    test('always renders Created and Updated; hides Closed when status is open', async () => {
+      document.body.innerHTML =
+        '<section class="panel"><div id="mount"></div></section>';
+      const mount = /** @type {HTMLElement} */ (
+        document.getElementById('mount')
+      );
+      const created = Date.UTC(2025, 0, 10, 12, 0, 0);
+      const updated = Date.UTC(2025, 0, 11, 9, 30, 0);
+      const issue = {
+        id: 'UI-DATE-1',
+        title: 'Open with dates',
+        status: 'open',
+        created_at: created,
+        updated_at: updated,
+        closed_at: null,
+        dependencies: [],
+        dependents: []
+      };
+      const stores = {
+        /** @param {string} id */
+        snapshotFor(id) {
+          return id === 'detail:UI-DATE-1' ? [issue] : [];
+        },
+        subscribe() {
+          return () => {};
+        }
+      };
+      const view = createDetailView(mount, async () => ({}), undefined, stores);
+      await view.load('UI-DATE-1');
+
+      const card = mount.querySelector('.props-card');
+      const createdProp = findProp(card, 'Created');
+      const updatedProp = findProp(card, 'Updated');
+      const closedProp = findProp(card, 'Closed');
+
+      expect(createdProp).toBeTruthy();
+      expect(updatedProp).toBeTruthy();
+      expect(closedProp).toBeUndefined();
+
+      const expectedCreated = new Date(created).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      expect(createdProp?.querySelector('.value')?.textContent?.trim()).toBe(
+        expectedCreated
+      );
+    });
+
+    test('renders Closed when status is closed and closed_at is set', async () => {
+      document.body.innerHTML =
+        '<section class="panel"><div id="mount"></div></section>';
+      const mount = /** @type {HTMLElement} */ (
+        document.getElementById('mount')
+      );
+      const closed = Date.UTC(2025, 1, 20, 8, 0, 0);
+      const issue = {
+        id: 'UI-DATE-2',
+        title: 'Closed with timestamp',
+        status: 'closed',
+        created_at: Date.UTC(2025, 0, 10, 12, 0, 0),
+        updated_at: Date.UTC(2025, 1, 20, 8, 0, 0),
+        closed_at: closed,
+        dependencies: [],
+        dependents: []
+      };
+      const stores = {
+        /** @param {string} id */
+        snapshotFor(id) {
+          return id === 'detail:UI-DATE-2' ? [issue] : [];
+        },
+        subscribe() {
+          return () => {};
+        }
+      };
+      const view = createDetailView(mount, async () => ({}), undefined, stores);
+      await view.load('UI-DATE-2');
+
+      const card = mount.querySelector('.props-card');
+      const closedProp = findProp(card, 'Closed');
+      expect(closedProp).toBeTruthy();
+      const expected = new Date(closed).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      expect(closedProp?.querySelector('.value')?.textContent?.trim()).toBe(
+        expected
+      );
+    });
+
+    test('hides Closed when status is closed but closed_at is missing', async () => {
+      document.body.innerHTML =
+        '<section class="panel"><div id="mount"></div></section>';
+      const mount = /** @type {HTMLElement} */ (
+        document.getElementById('mount')
+      );
+      const issue = {
+        id: 'UI-DATE-3',
+        title: 'Closed without timestamp',
+        status: 'closed',
+        created_at: Date.UTC(2025, 0, 10, 12, 0, 0),
+        updated_at: Date.UTC(2025, 1, 20, 8, 0, 0),
+        dependencies: [],
+        dependents: []
+      };
+      const stores = {
+        /** @param {string} id */
+        snapshotFor(id) {
+          return id === 'detail:UI-DATE-3' ? [issue] : [];
+        },
+        subscribe() {
+          return () => {};
+        }
+      };
+      const view = createDetailView(mount, async () => ({}), undefined, stores);
+      await view.load('UI-DATE-3');
+
+      const card = mount.querySelector('.props-card');
+      expect(findProp(card, 'Closed')).toBeUndefined();
+    });
+  });
+
   describe('delete issue', () => {
     test('renders delete button in detail view', async () => {
       document.body.innerHTML =
