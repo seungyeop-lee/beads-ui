@@ -72,7 +72,8 @@ These can also be set via CLI options: `bdui start --host 0.0.0.0 --port 8080`
 
 ## Developer Workflow
 
-- 🔨 Clone the repo and run `pnpm install`.
+- 🔨 Clone the repo and run `pnpm install`. Lefthook git hooks (pre-commit,
+  pre-push) install automatically via its postinstall script — no extra step.
 - 🚀 Start the dev server with `pnpm start`.
 - 🔗 Alternatively, use `pnpm link --global` to link the package globally and
   run `bdui start` from any project.

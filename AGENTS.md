@@ -110,6 +110,8 @@ configured), ask the user before configuring it, then resume the normal flow.
   `fix:`, etc.
 - Never run `git push`.
 - Never update `CHANGES.md`.
+- Never bypass git hooks (`--no-verify`, `LEFTHOOK=0`, or any equivalent
+  flag/env). If a hook fails, fix the underlying issue and retry.
 
 ## Coding Standards
 
@@ -168,7 +170,14 @@ configured), ask the user before configuring it, then resume the normal flow.
 
 ## Pre‑Handoff Validation
 
-- Run type checks: `pnpm tsc`
-- Run tests: `pnpm test`
-- Run eslint: `pnpm lint`
-- Run prettier: `pnpm prettier:write`
+Validation is enforced structurally by lefthook (`lefthook.yml`); running the
+checks manually is no longer required.
+
+- **pre-commit** runs `prettier --write` and `eslint --fix` on staged files and
+  re-stages the fixed output (`stage_fixed: true`).
+- **pre-push** runs `pnpm all` (`lint → tsc → test → prettier:check`), matching
+  the CI pipeline.
+
+Hooks install automatically when `pnpm install` runs lefthook's postinstall
+script (enabled via `pnpm.onlyBuiltDependencies` in `package.json`). If hooks
+are missing after a fresh clone, run `pnpm exec lefthook install` once.

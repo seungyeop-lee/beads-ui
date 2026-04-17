@@ -1,0 +1,28 @@
+# Lefthook (https://lefthook.dev/) — git hooks for this repo.
+# Installed automatically by the lefthook npm postinstall script on pnpm install.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: prettier
+      glob:
+        - '*.js'
+        - '*.ts'
+        - '*.json'
+        - '*.md'
+        - '*.yml'
+        - '*.yaml'
+        - '*.css'
+        - '*.html'
+      run: pnpm exec prettier --write {staged_files}
+      stage_fixed: true
+
+    - name: eslint
+      glob: '*.js'
+      run: pnpm exec eslint --fix {staged_files}
+      stage_fixed: true
+
+pre-push:
+  jobs:
+    - name: all
+      run: pnpm all
