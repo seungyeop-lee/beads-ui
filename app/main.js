@@ -422,6 +422,7 @@ export function bootstrap(root_element) {
           persisted_filters = {
             status: Array.isArray(obj.status)
               ? obj.status.filter(
+                  /** @param {unknown} s */
                   (s) =>
                     typeof s === 'string' &&
                     ['open', 'in_progress', 'closed', 'ready'].includes(s)

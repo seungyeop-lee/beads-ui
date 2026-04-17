@@ -117,10 +117,15 @@ export function createStore(initial = {}) {
       const workspace_changed =
         next.workspace.current?.path !== state.workspace.current?.path ||
         next.workspace.available.length !== state.workspace.available.length;
+      const status_unchanged =
+        next.filters.status.length === state.filters.status.length &&
+        next.filters.status.every(
+          (status, index) => status === state.filters.status[index]
+        );
       if (
         next.selected_id === state.selected_id &&
         next.view === state.view &&
-        next.filters.status === state.filters.status &&
+        status_unchanged &&
         next.filters.search === state.filters.search &&
         next.filters.type === state.filters.type &&
         next.board.closed_filter === state.board.closed_filter &&
