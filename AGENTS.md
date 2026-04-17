@@ -2,8 +2,9 @@
 
 ## Beads (bd) — Work Tracking
 
-Use MCP `beads` (bd) as our dependency‑aware issue tracker. Run
-`beads/quickstart` to learn how to use it.
+Use MCP `beads` (bd) as our dependency‑aware issue tracker. The `bd` command
+reference is injected by the SessionStart hook; this file defines
+project-specific conventions.
 
 ### Issue Types
 
@@ -30,26 +31,70 @@ Use MCP `beads` (bd) as our dependency‑aware issue tracker. Run
 
 Only `blocks` dependencies affect the ready work queue.
 
-### Structured Fields and Labels
-
-- Use issue `type` and `priority` fields.
-- Use issue type "epic" and `parent-child` dependencies.
-- Use `related` or `discovered-from` dependencies.
-- Area pointers are labels, e.g.: `frontend`, `backend`
-
 ### Agent Workflow
 
-If no issue is specified, run `bd ready` and claim an unblocked issue.
+Every task that modifies files follows the 9 steps below. This applies even when
+the user explicitly requests a simple documentation edit — no exceptions.
 
-1. Open issue with `bd show <id>` and read all linked docs.
-2. Assign to `agent`, update status as you work (`in_progress` → `closed`);
-   maintain dependencies, and attach notes/links for traceability.
-3. Discover new work? Create linked issue with dependency
-   `discovered-from:<parent-id>` and reference it in a code comment.
-4. Land the change; run tests/lint; update any referenced docs.
-5. Close the issue with `bd close <id>`.
+1. **Register the issue.** Before any file change, ensure a beads issue exists.
+   If not, create one with a concise title, purpose, and the agreed approach
+   only in the description (implementation detail is recorded later in step 7).
+   If an issue already exists (`bd ready`, user pointer), confirm it covers the
+   intended scope. Then request user direction.
+2. **Await user direction.** Do not start work until the user signals `승인`.
+   The user may approve multiple pre-registered issues at once.
+3. **Transition to `in_progress`.** Immediately before touching any file, run
+   `bd update <id> --status=in_progress`.
+4. **Execute the work.**
+5. **Report and request confirmation.** Summarize what changed.
+6. **Branch on the user's response.**
+   - `완료` → go to step 7.
+   - Anything else → treat as feedback; return to step 4. Status stays
+     `in_progress`.
+7. **Update notes.** Record decisions, their reasoning, and points where
+   feedback changed direction via `bd update <id> --notes="..."`. Skip anything
+   already visible in the diff or commit message.
+8. **Close the issue** with `bd close <id>`.
+9. **Commit.** Stage only files belonging to this issue and commit. Never run
+   `git push`; the user owns remote publication.
 
-Never update `CHANGES.md`.
+Work discovered mid-execution creates a new issue with a
+`discovered-from:<parent-id>` dependency — continue the parent, do not switch.
+
+### Session Signals
+
+Only these literal keywords carry workflow meaning:
+
+- **`승인`** — approval to proceed (step 1 → 3). Covers one or more
+  pre-registered issues.
+- **`완료`** — confirmation that the step 5 report is accepted (step 6 → 7).
+
+Any other response during step 6 is treated as feedback and loops back to
+step 4.
+
+### Concurrency
+
+Only **one** issue may be `in_progress` per session. Multiple issues can be
+approved together, but execute them sequentially.
+
+### Task Tracking
+
+Use beads exclusively. Do **not** use `TodoWrite`, `TaskCreate`, or ad-hoc
+markdown files for task tracking.
+
+### Setup Exceptions
+
+If a one-time setup prerequisite is missing (e.g., `issue_prefix` not
+configured), ask the user before configuring it, then resume the normal flow.
+
+### Commit Rules
+
+- Stage only files belonging to the closed issue; report any unrelated
+  working-tree changes to the user instead of sweeping them in.
+- Follow the existing commit message convention: `chore:`, `feat(scope):`,
+  `fix:`, etc.
+- Never run `git push`.
+- Never update `CHANGES.md`.
 
 ## Coding Standards
 
