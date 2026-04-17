@@ -43,8 +43,8 @@ Only `blocks` dependencies affect the ready work queue.
   - **METHOD** — the agreed approach for resolving it (how the change will be
     made). Record only the approach here; implementation detail belongs in
     `notes` after the work is done (step 7).
-- Use clear section headings (e.g., `## 무엇을 (WHAT)`, `## 어떻게 (METHOD)`)
-  so both elements are unambiguously locatable.
+- Use clear section headings (e.g., `## 무엇을 (WHAT)`, `## 어떻게 (METHOD)`) so
+  both elements are unambiguously locatable.
 
 ### Agent Workflow
 
