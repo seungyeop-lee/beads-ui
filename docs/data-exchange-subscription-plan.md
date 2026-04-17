@@ -28,6 +28,8 @@ Owner: agent
 - `ready-issues`
 - `in-progress-issues`
 - `closed-issues` (special filtering noted below)
+- `filtered-issues` (CSV `params.statuses`, subset of `open,in_progress,closed`;
+  empty/missing expands to all three)
 
 ## Server Architecture
 

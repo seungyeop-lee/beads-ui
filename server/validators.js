@@ -16,8 +16,16 @@ const SUBSCRIPTION_TYPES = new Set([
   'ready-issues',
   'in-progress-issues',
   'closed-issues',
+  'filtered-issues',
   'issue-detail'
 ]);
+
+/**
+ * Allowed status tokens for `filtered-issues.params.statuses`.
+ *
+ * @type {Set<string>}
+ */
+const FILTERED_ISSUE_STATUSES = new Set(['open', 'in_progress', 'closed']);
 
 /**
  * Validate a subscribe-list payload and normalize to a SubscriptionSpec.
@@ -94,6 +102,37 @@ export function validateSubscribeListPayload(payload) {
         };
       }
       params = { since: n };
+    } else {
+      params = undefined;
+    }
+  } else if (type === 'filtered-issues') {
+    if (params && 'statuses' in params) {
+      const raw = params.statuses;
+      if (typeof raw !== 'string') {
+        return {
+          ok: false,
+          code: 'bad_request',
+          message: 'params.statuses must be a comma-separated string'
+        };
+      }
+      const arr = raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      if (arr.length === 0) {
+        params = undefined;
+      } else {
+        for (const s of arr) {
+          if (!FILTERED_ISSUE_STATUSES.has(s)) {
+            return {
+              ok: false,
+              code: 'bad_request',
+              message: `params.statuses contains invalid value: ${s}`
+            };
+          }
+        }
+        params = { statuses: arr.join(',') };
+      }
     } else {
       params = undefined;
     }

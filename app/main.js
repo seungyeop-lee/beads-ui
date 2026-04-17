@@ -23,6 +23,54 @@ import { createWorkspacePicker } from './views/workspace-picker.js';
 import { createWsClient } from './ws.js';
 
 /**
+ * Normalize a status filter value to an array of status tokens.
+ * Accepts legacy string values (`'all'`, `'open'`, `'ready'`, ...) or an array.
+ *
+ * @param {string | string[] | undefined | null} val
+ * @returns {string[]}
+ */
+function normalizeStatusFilter(val) {
+  if (Array.isArray(val)) {
+    return val.filter((s) => typeof s === 'string' && s.length > 0);
+  }
+  if (typeof val === 'string' && val !== '' && val !== 'all') {
+    return [val];
+  }
+  return [];
+}
+
+/**
+ * Compute subscription spec for the Issues tab from filter state.
+ *
+ * Routing rules:
+ * - Contains `ready` → `ready-issues` (ready overrides other statuses).
+ * - Exactly one status of `in_progress` → `in-progress-issues`.
+ * - Exactly one status of `closed` → `closed-issues`.
+ * - Empty (Any) or any other combination → `filtered-issues` with a CSV
+ *   `statuses` param. An empty set expands to `open,in_progress,closed`.
+ *
+ * @param {{ status?: string | string[] }} filters
+ * @returns {{ type: string, params?: Record<string, string|number|boolean> }}
+ */
+export function computeIssuesSpec(filters) {
+  const arr = normalizeStatusFilter(filters?.status);
+  if (arr.includes('ready')) {
+    return { type: 'ready-issues' };
+  }
+  if (arr.length === 1 && arr[0] === 'in_progress') {
+    return { type: 'in-progress-issues' };
+  }
+  if (arr.length === 1 && arr[0] === 'closed') {
+    return { type: 'closed-issues' };
+  }
+  const statuses = arr.length === 0 ? ['open', 'in_progress', 'closed'] : arr;
+  return {
+    type: 'filtered-issues',
+    params: { statuses: statuses.join(',') }
+  };
+}
+
+/**
  * Bootstrap the SPA shell with two panels.
  *
  * @param {HTMLElement} root_element - The container element to render into.
@@ -670,27 +718,6 @@ export function bootstrap(root_element) {
       getActivityCount: () => activity.getCount(),
       getActiveRequests: () => activity.getActiveRequests()
     };
-
-    /**
-     * Compute subscription spec for Issues tab based on filters.
-     *
-     * @param {{ status?: string }} filters
-     * @returns {{ type: string, params?: Record<string, string|number|boolean> }}
-     */
-    function computeIssuesSpec(filters) {
-      const st = String(filters?.status || 'all');
-      if (st === 'ready') {
-        return { type: 'ready-issues' };
-      }
-      if (st === 'in_progress') {
-        return { type: 'in-progress-issues' };
-      }
-      if (st === 'closed') {
-        return { type: 'closed-issues' };
-      }
-      // "all" and "open" map to all-issues; client filters apply locally
-      return { type: 'all-issues' };
-    }
 
     /** @type {string|null} */
     let last_issues_spec_key = null;

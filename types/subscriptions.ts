@@ -43,6 +43,7 @@ export type SubscriptionType =
   | 'ready-issues'
   | 'in-progress-issues'
   | 'closed-issues'
+  | 'filtered-issues'
   | 'issue-detail';
 
 export interface SubscribeParamsBase {

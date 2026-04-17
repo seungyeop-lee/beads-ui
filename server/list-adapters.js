@@ -39,6 +39,24 @@ export function mapSubscriptionToBdArgs(spec) {
         '1000'
       ];
     }
+    case 'filtered-issues': {
+      const p = spec.params || {};
+      const raw = typeof p.statuses === 'string' ? p.statuses : '';
+      const arr = raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      const statuses = arr.length > 0 ? arr : ['open', 'in_progress', 'closed'];
+      return [
+        'list',
+        '--json',
+        '--tree=false',
+        '--status',
+        statuses.join(','),
+        '--limit',
+        '1000'
+      ];
+    }
     case 'issue-detail': {
       const p = spec.params || {};
       const id = String(p.id || '').trim();

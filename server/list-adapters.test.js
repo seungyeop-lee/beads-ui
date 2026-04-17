@@ -57,6 +57,67 @@ describe('list adapters for subscription types', () => {
     ]);
   });
 
+  test('mapSubscriptionToBdArgs returns CSV --status args for filtered-issues', () => {
+    const args = mapSubscriptionToBdArgs({
+      type: 'filtered-issues',
+      params: { statuses: 'open,closed' }
+    });
+    expect(args).toEqual([
+      'list',
+      '--json',
+      '--tree=false',
+      '--status',
+      'open,closed',
+      '--limit',
+      '1000'
+    ]);
+  });
+
+  test('mapSubscriptionToBdArgs trims whitespace in filtered-issues statuses', () => {
+    const args = mapSubscriptionToBdArgs({
+      type: 'filtered-issues',
+      params: { statuses: ' in_progress , closed ' }
+    });
+    expect(args).toEqual([
+      'list',
+      '--json',
+      '--tree=false',
+      '--status',
+      'in_progress,closed',
+      '--limit',
+      '1000'
+    ]);
+  });
+
+  test('mapSubscriptionToBdArgs expands missing filtered-issues statuses to all three', () => {
+    const args = mapSubscriptionToBdArgs({ type: 'filtered-issues' });
+    expect(args).toEqual([
+      'list',
+      '--json',
+      '--tree=false',
+      '--status',
+      'open,in_progress,closed',
+      '--limit',
+      '1000'
+    ]);
+  });
+
+  test('mapSubscriptionToBdArgs expands empty filtered-issues statuses to all three', () => {
+    const args = mapSubscriptionToBdArgs({
+      type: 'filtered-issues',
+      params: { statuses: '' }
+    });
+    expect(args).toEqual([
+      'list',
+      '--json',
+      '--tree=false',
+      '--status',
+      'open,in_progress,closed',
+      '--limit',
+      '1000'
+    ]);
+  });
+
   test('mapSubscriptionToBdArgs returns args for issue-detail', () => {
     const args = mapSubscriptionToBdArgs({
       type: 'issue-detail',
