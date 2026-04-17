@@ -524,6 +524,11 @@ button.id-copy {
   line-height: inherit;
   font: inherit;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: bottom;
 }
 button.id-copy:hover {
   text-decoration: underline;
