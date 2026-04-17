@@ -27,11 +27,11 @@ markdown files.
   - **WHAT** — the target problem/outcome (why this issue exists, what must
     change).
   - **METHOD** — the agreed approach. Implementation detail belongs in `notes`
-    after the work is done (step 7).
+    after the work is done (step 9).
 
 ### Agent Workflow
 
-Every file-modifying task, including trivial doc edits, follows these 9 steps:
+Every file-modifying task, including trivial doc edits, follows these 10 steps:
 
 1. **Register** — ensure a beads issue exists (create if needed, or confirm an
    existing one covers the scope).
@@ -42,15 +42,18 @@ Every file-modifying task, including trivial doc edits, follows these 9 steps:
 4. **Execute.**
 5. **Report** — summarize changes and request confirmation. If the description
    contains a verification section (e.g., `## 검증`), execute every item and
-   include the outcomes (evidence) here or in Notes (step 7); never announce
+   include the outcomes (evidence) here or in Notes (step 9); never announce
    `완료` while any verification item is still outstanding.
 6. **Branch on response** — `완료` → step 7. Anything else is feedback; return
    to step 4 (status stays `in_progress`).
-7. **Notes** — `bd update <id> --notes="..."` for decisions, rationale, and
-   feedback-driven changes. Skip anything already in the diff or commit.
-8. **Close** — `bd close <id>`.
-9. **Commit** — stage only files for this issue and commit. Never run
+7. **Commit** — stage only files for this issue and commit. Never run
    `git push`.
+8. **Comment** — add an issue comment with the actual commit hash and commit
+   message for the commit from step 7.
+9. **Notes** — use `bd update <id> --notes="..."` only for durable context such
+   as decisions, verification outcomes, or feedback-driven rationale that is not
+   already captured in the diff, commit, or comment.
+10. **Close** — `bd close <id>`.
 
 Session signals: only `승인` (step 1 → 3) and `완료` (step 6 → 7) carry workflow
 meaning.
