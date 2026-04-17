@@ -1,5 +1,161 @@
 # Changes
 
+## 0.13.0
+
+- [`15d2d69`](https://github.com/seungyeop-lee/beads-ui/commit/15d2d69ac5e7ea458302b04f719b1bc7c064f93b)
+  docs(agents): add epic creation workflow with dependency direction rule
+- [`7e8bc7a`](https://github.com/seungyeop-lee/beads-ui/commit/7e8bc7a571f1083ec393e2cef01f1d66cec0f5c7)
+  fix(detail): confirm dependency removals in dialogs
+- [`41b3a99`](https://github.com/seungyeop-lee/beads-ui/commit/41b3a99dac90c236b6d05a9e0195fa79848c4338)
+  fix(list): make ready a radio-like status filter
+    >
+    > Ready is a derived concept (open + no blockers) that conflicts with
+    > other statuses. Selecting ready now clears other status checkboxes and
+    > disables them; selecting another status clears ready.
+    >
+- [`8b55ee7`](https://github.com/seungyeop-lee/beads-ui/commit/8b55ee77110a7408eb8156bbc2ca7b96658dc311)
+  docs(agents): add project-specific workflow examples
+- [`f56c6ce`](https://github.com/seungyeop-lee/beads-ui/commit/f56c6ce0f5519420538b129b6dd227f241a88a2f)
+  fix(subscriptions): add _board_column to JSDoc type definitions
+    >
+    > tsc reported TS2339 on line 130 because @param and module-level
+    > itemsById type annotations did not include the _board_column property.
+    >
+- [`1243029`](https://github.com/seungyeop-lee/beads-ui/commit/1243029ac2d321f63c0c1371a8e46e87006c6f50)
+  fix(header): simplify top-left brand area
+    >
+    > Keep the header brand to the workspace name only and rebalance spacing so the top navigation still aligns naturally.
+    >
+- [`ccd94a8`](https://github.com/seungyeop-lee/beads-ui/commit/ccd94a89c45f55e2e97c9a40fc82df56e7519eb4)
+  feat(board): unify four column subscriptions into single board-issues subscription
+    >
+    > Replace four separate WebSocket subscriptions (ready, blocked, in_progress,
+    > closed) with one board-issues subscription that fetches all columns in
+    > parallel on the server and tags each issue with _board_column. The client
+    > splits the unified snapshot into columns, eliminating sequential column
+    > loading on initial board entry.
+    >
+- [`16af938`](https://github.com/seungyeop-lee/beads-ui/commit/16af938f616ef948ae19d0328a4c80f1118a78fc)
+  chore: document beads completion workflow
+- [`b278047`](https://github.com/seungyeop-lee/beads-ui/commit/b27804734a918cae837b6a2fdde159e290cb3a98)
+  fix(issues): widen status column for in-progress label
+- [`18d2170`](https://github.com/seungyeop-lee/beads-ui/commit/18d2170ed5fb39d7407b90b12eae841a037e8a52)
+  fix(state): restore status filter dedupe semantics
+- [`d1785d5`](https://github.com/seungyeop-lee/beads-ui/commit/d1785d5e8eede9a8a3c03978bd1aadfa3794a89c)
+  feat(epics): sort by status rank then priority
+- [`0f85a44`](https://github.com/seungyeop-lee/beads-ui/commit/0f85a445df79eeccef4a0f88c324d21bfec124ff)
+  feat(epics): split epic header click targets into toggle bar and title
+- [`95fcc47`](https://github.com/seungyeop-lee/beads-ui/commit/95fcc4783c7d995b4e9286c5fe8e7c09ddd22803)
+  feat(detail): show created/updated/closed timestamps in properties
+- [`f998c8a`](https://github.com/seungyeop-lee/beads-ui/commit/f998c8afe72f0bc0f36dc3445045ed883120e88c)
+  feat(issues): default status filter to open+in_progress instead of all
+- [`888717f`](https://github.com/seungyeop-lee/beads-ui/commit/888717f6a1e35cccb0925f07e18684a08d3d41aa)
+  fix(styles): widen .md heading top/bottom asymmetry
+    >
+    > Raise `.md` h1~h6 top margins (20/20/18/16/12) while keeping bottom
+    > margins small (6/6/6/4/4) so headings group with the following body
+    > content in issue detail markdown blocks.
+    >
+    > Move the `.md { ... }` block to the end of styles.css so its heading
+    > rules win source-order against same-specificity selectors like
+    > `.detail-main h2 { margin: 0 0 32px }`, which otherwise overrode the
+    > new margins inside the issue detail view.
+    >
+- [`0af4af0`](https://github.com/seungyeop-lee/beads-ui/commit/0af4af00abb2a8e30162d934b21d9a3c060d3193)
+  fix(issues): include closed in multi-status filter via filtered-issues
+    >
+    > Route the Issues tab's status filter through a new `filtered-issues`
+    > subscription that passes a CSV `--status` to `bd list`, so combinations
+    > like Any, Closed+Open, or In progress+Closed no longer drop closed
+    > items. Keeps `ready-issues`, `in-progress-issues`, and `closed-issues`
+    > as single-selection fast paths.
+    >
+- [`623a7c9`](https://github.com/seungyeop-lee/beads-ui/commit/623a7c9196b2d5d4e9db8431c48ef92a9773924e)
+  chore: document pnpm build need and verification-section policy
+    >
+    > Pre-Handoff Validation 에 UI 소스 변경 후 `pnpm build` 재생성 필요
+    > 문구를 추가하고, Agent Workflow step 5 에 이슈의 `## 검증` 섹션을
+    > 모두 수행하고 증거를 Report/Notes 에 남기지 않는 한 `완료` 로
+    > 보고하지 않는다는 지침을 명시.
+    >
+- [`635f8f7`](https://github.com/seungyeop-lee/beads-ui/commit/635f8f7c6a96cbf20505b02c55f46ef5b40ba2ef)
+  feat(issues): open detail on title click; edit via pencil icon
+    >
+    > Title 셀 클릭이 인라인 편집으로 빠지던 동작을 제거하고 행 클릭과
+    > 동일하게 상세 뷰로 이동하도록 변경. 편집은 셀 우측 펜 아이콘
+    > 버튼으로 분리하여 명확한 트리거로 재배치. hover/포커스 스타일을
+    > 서로 다른 시각 언어로 분리해 외곽선 중첩을 피함.
+    >
+- [`41184d8`](https://github.com/seungyeop-lee/beads-ui/commit/41184d804fec158a7ca27561c87005b22478a3a6)
+  chore: slim AGENTS.md and extract coding standards
+    >
+    > AGENTS.md가 199줄로 커져 bd CLI 일반 지식과 코딩 표준이 프로젝트 고유
+    > 규약과 섞여 있었다. 권장안에 따라 중복·장황함을 제거하고 코딩 표준을
+    > docs/coding-standards.md로 분리해 AGENTS.md를 88줄로 축약했다.
+    >
+- [`7096d86`](https://github.com/seungyeop-lee/beads-ui/commit/7096d86a5dea71e9bce40e888e5d87535d5b6373)
+  chore: document local-only beads operating mode
+    >
+    > Add an Operating Mode section clarifying that this repo has no Dolt
+    > remote, so bd dolt pull/push must not be run despite the SessionStart
+    > hook's Session Close Protocol.
+    >
+- [`9ad044b`](https://github.com/seungyeop-lee/beads-ui/commit/9ad044b1ad0c499293fa48a69d7560d17e83cb28)
+  fix: prevent long issue ID from overflowing into Type column
+    >
+    > Apply overflow: hidden and text-overflow: ellipsis on button.id-copy
+    > so truncated IDs stay within the 100px ID column in fixed-layout tables.
+    >
+- [`94841dd`](https://github.com/seungyeop-lee/beads-ui/commit/94841ddd445c137db031f445144bd9195759c457)
+  chore: add .idea to .gitignore
+- [`ff4db5e`](https://github.com/seungyeop-lee/beads-ui/commit/ff4db5e6b19d3c843b9d0c9ef7c93166fdd41b10)
+  chore: enforce validation via lefthook pre-commit/pre-push
+    >
+    > - Add lefthook devDep and pnpm.onlyBuiltDependencies entry so hooks
+    >   install automatically on pnpm install.
+    > - lefthook.yml runs prettier --write (+ stage_fixed) on staged
+    >   js/ts/json/md/yml/yaml/css/html and eslint --fix on staged js
+    >   in pre-commit; pre-push delegates to pnpm all.
+    > - Rewrite AGENTS.md Pre-Handoff Validation section to describe the
+    >   structural enforcement, ban hook bypass flags in Commit Rules, and
+    >   note automatic hook installation in README.
+    >
+- [`f7e07a8`](https://github.com/seungyeop-lee/beads-ui/commit/f7e07a8287fbfdfa740351fe8dba282b23085ee0)
+  style: fix prettier formatting in AGENTS.md
+- [`d645c19`](https://github.com/seungyeop-lee/beads-ui/commit/d645c19312ed23e75d43504241473df1c784d4d8)
+  chore(ci): add feature/** branches to trigger filters
+- [`0ff6fb7`](https://github.com/seungyeop-lee/beads-ui/commit/0ff6fb74b42f81e81055bf729ad65340927e7dc5)
+  chore(ci): bump GitHub Actions v4 to v6
+- [`3c1732b`](https://github.com/seungyeop-lee/beads-ui/commit/3c1732b73426aa7d3a5ff04b83dc410c4d6f6373)
+  chore: require Korean beads issues with explicit WHAT/METHOD
+    >
+    > Add an Issue Content section to AGENTS.md mandating Korean for narrative
+    > fields and requiring every issue description to spell out WHAT and METHOD.
+    >
+- [`83550c5`](https://github.com/seungyeop-lee/beads-ui/commit/83550c5a3116f7947107201537fdd6f625428aa6)
+  chore: add CLAUDE.md importing AGENTS.md
+- [`9bc4c05`](https://github.com/seungyeop-lee/beads-ui/commit/9bc4c056590677dee6909bb74d237e582d665a16)
+  chore: switch package manager from npm to pnpm
+    >
+    > - package.json: script calls and publish use pnpm, add packageManager field
+    > - .github/workflows/ci.yml: adopt pnpm/action-setup and pnpm cache
+    > - README.md: developer workflow uses pnpm; user install keeps npm with pnpm alternative noted
+    > - AGENTS.md: Pre-Handoff Validation commands use pnpm
+    > - .prettierignore: ignore pnpm-lock.yaml
+    > - replace package-lock.json with pnpm-lock.yaml
+    >
+- [`c4994cb`](https://github.com/seungyeop-lee/beads-ui/commit/c4994cb2985f752b14f7b3f5bd7561a5e5d6cd98)
+  chore: revise AGENTS.md with 9-step agent workflow
+- [`9e76153`](https://github.com/seungyeop-lee/beads-ui/commit/9e76153d970f4bb6aa4b8c2dd373120056507178)
+  chore: rebrand as @seungyeop-lee/beads-ui fork
+    >
+    > - Update package name, author, homepage, and repo URL
+    > - Add fork attribution in README and LICENSE
+    > - Remove .beads/issues.jsonl from tracking
+    >
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-04-17._
+
 ## 0.12.0
 
 - [`8559d4a`](https://github.com/mantoni/beads-ui/commit/8559d4af699555b9943914a2e790965c9e4d8da7)
