@@ -6,7 +6,7 @@
  *
  * Maintains per-subscription entries keyed by a stable string derived from
  * `{ type, params }`. Each entry stores:
- *  - `itemsById`: Map<string, { updated_at: number, closed_at: number|null }>
+ *  - `itemsById`: Map<string, { updated_at: number, closed_at: number|null, _board_column?: string }>
  *  - `subscribers`: Set<WebSocket>
  *  - `lock`: Promise chain to serialize refresh/update operations per key
  *
@@ -107,7 +107,7 @@ export function computeDelta(prev, next) {
 /**
  * Normalize array of issue-like objects into an itemsById map.
  *
- * @param {Array<{ id: string, updated_at: number, closed_at?: number|null }>} items
+ * @param {Array<{ id: string, updated_at: number, closed_at?: number|null, _board_column?: string }>} items
  * @returns {Map<string, ItemMeta>}
  */
 export function toItemsMap(items) {
@@ -282,7 +282,7 @@ export class SubscriptionRegistry {
    * Convenience: update items from an array of objects with id/updated_at/closed_at.
    *
    * @param {string} key
-   * @param {Array<{ id: string, updated_at: number, closed_at?: number|null }>} items
+   * @param {Array<{ id: string, updated_at: number, closed_at?: number|null, _board_column?: string }>} items
    * @returns {{ added: string[], updated: string[], removed: string[] }}
    */
   applyItems(key, items) {
