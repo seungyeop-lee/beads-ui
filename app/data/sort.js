@@ -30,6 +30,37 @@ export function cmpPriorityThenCreated(a, b) {
 }
 
 /**
+ * Status rank for epic ordering: in_progress (0) → open (1) → closed (2).
+ *
+ * @param {string | undefined} status
+ */
+function epicStatusRank(status) {
+  if (status === 'in_progress') {
+    return 0;
+  }
+  if (status === 'closed') {
+    return 2;
+  }
+  return 1;
+}
+
+/**
+ * Compare by status rank (in_progress → open → closed), then priority asc,
+ * then created_at asc, then id asc.
+ *
+ * @param {IssueLite} a
+ * @param {IssueLite} b
+ */
+export function cmpEpicOrder(a, b) {
+  const sa = epicStatusRank(a.status);
+  const sb = epicStatusRank(b.status);
+  if (sa !== sb) {
+    return sa - sb;
+  }
+  return cmpPriorityThenCreated(a, b);
+}
+
+/**
  * Compare by closed_at desc, then id asc for stability.
  *
  * @param {IssueLite} a

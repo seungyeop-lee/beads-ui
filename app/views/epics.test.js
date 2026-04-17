@@ -801,4 +801,106 @@ describe('views/epics', () => {
     );
     expect(input).not.toBeNull();
   });
+
+  /**
+   * Build a minimal issue_stores fixture backed by subscription stores.
+   */
+  function buildStoresFixture() {
+    const stores = new Map();
+    const listeners = new Set();
+    /** @param {string} id */
+    const getStore = (id) => {
+      let s = stores.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    return {
+      getStore,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners.add(fn);
+        return () => listeners.delete(fn);
+      }
+    };
+  }
+
+  test('sorts epics by status rank then priority', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const issueStores = buildStoresFixture();
+    const subscriptions = createSubscriptionStore(async () => {});
+    issueStores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-A',
+          title: 'Open P1',
+          issue_type: 'epic',
+          status: 'open',
+          priority: 1,
+          dependents: []
+        },
+        {
+          id: 'UI-B',
+          title: 'Closed P0',
+          issue_type: 'epic',
+          status: 'closed',
+          priority: 0,
+          dependents: []
+        },
+        {
+          id: 'UI-C',
+          title: 'In progress P3',
+          issue_type: 'epic',
+          status: 'in_progress',
+          priority: 3,
+          dependents: []
+        },
+        {
+          id: 'UI-D',
+          title: 'Open P0',
+          issue_type: 'epic',
+          status: 'open',
+          priority: 0,
+          dependents: []
+        }
+      ]
+    });
+
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStores)
+    );
+    await view.load();
+
+    const ids = Array.from(mount.querySelectorAll('.epic-group')).map((el) =>
+      el.getAttribute('data-epic-id')
+    );
+    expect(ids).toEqual(['UI-C', 'UI-D', 'UI-A', 'UI-B']);
+  });
 });

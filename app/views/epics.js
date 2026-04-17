@@ -1,5 +1,6 @@
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
+import { cmpEpicOrder } from '../data/sort.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { createIssueRowRenderer } from './issue-row.js';
 
@@ -253,8 +254,12 @@ export function createEpicsView(
             issue_stores.snapshotFor('tab:epics') || []
           )
         : [];
+    // Order epics: in_progress → open → closed, then priority, created_at, id.
+    const sorted_epics = /** @type {IssueLite[]} */ (
+      /** @type {any[]} */ (epic_entities).slice().sort(cmpEpicOrder)
+    );
     const next_groups = [];
-    for (const epic of epic_entities) {
+    for (const epic of sorted_epics) {
       const dependents = Array.isArray(/** @type {any} */ (epic).dependents)
         ? /** @type {any[]} */ (/** @type {any} */ (epic).dependents)
         : [];
