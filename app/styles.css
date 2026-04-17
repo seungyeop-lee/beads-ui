@@ -935,6 +935,11 @@ html[data-theme='dark'] {
   margin: 0;
 }
 
+.filter-dropdown__option.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* Inline, minimal text input for table editing */
 input.inline-edit {
   border: none;

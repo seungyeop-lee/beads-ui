@@ -105,10 +105,19 @@ export function createListView(
    * @param {string} status
    */
   const toggleStatusFilter = async (status) => {
-    if (status_filters.includes(status)) {
-      status_filters = status_filters.filter((s) => s !== status);
+    if (status === 'ready') {
+      if (status_filters.includes('ready')) {
+        status_filters = [];
+      } else {
+        status_filters = ['ready'];
+      }
     } else {
-      status_filters = [...status_filters, status];
+      status_filters = status_filters.filter((s) => s !== 'ready');
+      if (status_filters.includes(status)) {
+        status_filters = status_filters.filter((s) => s !== status);
+      } else {
+        status_filters = [...status_filters, status];
+      }
     }
     log('status toggle %s -> %o', status, status_filters);
     if (store) {
@@ -243,10 +252,18 @@ export function createListView(
           <div class="filter-dropdown__menu">
             ${['ready', 'open', 'in_progress', 'closed'].map(
               (s) => html`
-                <label class="filter-dropdown__option">
+                <label
+                  class="filter-dropdown__option${status_filters.includes(
+                    'ready'
+                  ) && s !== 'ready'
+                    ? ' is-disabled'
+                    : ''}"
+                >
                   <input
                     type="checkbox"
                     .checked=${status_filters.includes(s)}
+                    ?disabled=${status_filters.includes('ready') &&
+                    s !== 'ready'}
                     @change=${() => toggleStatusFilter(s)}
                   />
                   ${s === 'ready' ? 'Ready' : statusLabel(s)}
