@@ -1009,6 +1009,53 @@ input.inline-edit:focus {
   box-shadow: none;
 }
 
+/* Title cell: clickable text + pencil button for inline edit */
+.title-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.title-cell .row-title {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.title-cell .row-title:hover {
+  text-decoration: underline;
+}
+.title-cell .row-title:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--link) 60%, transparent);
+  outline-offset: var(--outline-offset-l);
+}
+.title-cell .row-edit-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.55;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+.title-cell .row-edit-btn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.title-cell .row-edit-btn:focus-visible {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  outline: 2px solid color-mix(in srgb, currentColor 55%, transparent);
+  outline-offset: var(--outline-offset-s);
+}
+.title-cell input.inline-edit {
+  flex: 1;
+  min-width: 0;
+}
+
 #list-panel .panel__header input[type='search'] {
   flex: 1;
 }

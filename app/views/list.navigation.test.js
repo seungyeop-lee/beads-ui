@@ -89,7 +89,7 @@ describe('views/list navigation', () => {
     // Focus Title cell (3rd column) in first row
     const first_title = /** @type {HTMLElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(1) td:nth-child(3) .editable'
+        'tbody tr.issue-row:nth-child(1) td:nth-child(3) .row-title'
       )
     );
     first_title.focus();
@@ -102,7 +102,7 @@ describe('views/list navigation', () => {
 
     const second_title = /** @type {HTMLElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(2) td:nth-child(3) .editable'
+        'tbody tr.issue-row:nth-child(2) td:nth-child(3) .row-title'
       )
     );
     expect(document.activeElement).toBe(second_title);
@@ -153,7 +153,7 @@ describe('views/list navigation', () => {
 
     const third_title = /** @type {HTMLElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(3) td:nth-child(3) .editable'
+        'tbody tr.issue-row:nth-child(3) td:nth-child(3) .row-title'
       )
     );
     third_title.focus();
@@ -163,7 +163,7 @@ describe('views/list navigation', () => {
 
     const second_title = /** @type {HTMLElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(2) td:nth-child(3) .editable'
+        'tbody tr.issue-row:nth-child(2) td:nth-child(3) .row-title'
       )
     );
     expect(document.activeElement).toBe(second_title);

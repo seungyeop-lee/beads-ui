@@ -105,6 +105,88 @@ export function createIssueRowRenderer(options) {
   }
 
   /**
+   * Render the title cell: text opens detail on click or Enter; a pencil
+   * button triggers inline edit.
+   *
+   * @param {string} id
+   * @param {string} value
+   */
+  function titleCell(id, value) {
+    const k = `${id}:title`;
+    const is_edit = editing.has(k);
+    if (is_edit) {
+      return html`<div class="title-cell">
+        <input
+          type="text"
+          .value=${value}
+          class="inline-edit"
+          @keydown=${
+            /** @param {KeyboardEvent} e */ async (e) => {
+              if (e.key === 'Escape') {
+                editing.delete(k);
+                request_render();
+              } else if (e.key === 'Enter') {
+                const el = /** @type {HTMLInputElement} */ (e.currentTarget);
+                const next = el.value || '';
+                if (next !== value) {
+                  await on_update(id, { title: next });
+                }
+                editing.delete(k);
+                request_render();
+              }
+            }
+          }
+          @blur=${
+            /** @param {Event} ev */ async (ev) => {
+              const el = /** @type {HTMLInputElement} */ (ev.currentTarget);
+              const next = el.value || '';
+              if (next !== value) {
+                await on_update(id, { title: next });
+              }
+              editing.delete(k);
+              request_render();
+            }
+          }
+          autofocus
+        />
+      </div>`;
+    }
+    return html`<div class="title-cell">
+      <span
+        class="row-title text-truncate"
+        tabindex="0"
+        role="button"
+        aria-label="Open issue"
+        @keydown=${
+          /** @param {KeyboardEvent} e */ (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              navigate(id);
+            }
+          }
+        }
+        >${value}</span
+      >
+      <button
+        type="button"
+        class="row-edit-btn"
+        aria-label="Edit title"
+        title="Edit title"
+        @click=${
+          /** @param {MouseEvent} e */ (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            editing.add(k);
+            request_render();
+          }
+        }
+      >
+        ✎
+      </button>
+    </div>`;
+  }
+
+  /**
    * @param {string} id
    * @param {'priority'|'status'} key
    * @returns {(ev: Event) => Promise<void>}
@@ -149,7 +231,7 @@ export function createIssueRowRenderer(options) {
     >
       <td role="gridcell" class="mono">${createIssueIdRenderer(it.id)}</td>
       <td role="gridcell">${createTypeBadge(it.issue_type)}</td>
-      <td role="gridcell">${editableText(it.id, 'title', it.title || '')}</td>
+      <td role="gridcell">${titleCell(it.id, it.title || '')}</td>
       <td role="gridcell">
         <select
           class="badge-select badge--status is-${cur_status}"
