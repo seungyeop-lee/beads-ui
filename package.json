@@ -80,6 +80,9 @@
     "README.md",
     "!**/*.test.js"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/seungyeop-lee/beads-ui.git"
