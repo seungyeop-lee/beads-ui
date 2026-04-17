@@ -121,6 +121,8 @@ export function createDetailView(
 
   /** @type {HTMLDialogElement | null} */
   let delete_dialog = null;
+  /** @type {HTMLDialogElement | null} */
+  let dep_remove_dialog = null;
 
   function ensureDeleteDialog() {
     if (delete_dialog) return delete_dialog;
@@ -130,6 +132,42 @@ export function createDetailView(
     delete_dialog.setAttribute('aria-modal', 'true');
     document.body.appendChild(delete_dialog);
     return delete_dialog;
+  }
+
+  function ensureDepRemoveDialog() {
+    if (dep_remove_dialog) return dep_remove_dialog;
+    dep_remove_dialog = document.createElement('dialog');
+    dep_remove_dialog.id = 'dep-remove-confirm-dialog';
+    dep_remove_dialog.setAttribute('role', 'alertdialog');
+    dep_remove_dialog.setAttribute('aria-modal', 'true');
+    document.body.appendChild(dep_remove_dialog);
+    return dep_remove_dialog;
+  }
+
+  /**
+   * @param {HTMLDialogElement} dialog
+   */
+  function closeDialog(dialog) {
+    if (typeof dialog.close === 'function') {
+      dialog.close();
+    }
+    dialog.removeAttribute('open');
+  }
+
+  /**
+   * @param {HTMLDialogElement} dialog
+   */
+  function showModal(dialog) {
+    if (typeof dialog.showModal === 'function') {
+      try {
+        dialog.showModal();
+        dialog.setAttribute('open', '');
+      } catch {
+        dialog.setAttribute('open', '');
+      }
+    } else {
+      dialog.setAttribute('open', '');
+    }
   }
 
   function openDeleteDialog() {
@@ -149,42 +187,57 @@ export function createDetailView(
         </div>
       </div>
     `;
-    const cancelBtn = dialog.querySelector('#delete-cancel-btn');
-    const confirmBtn = dialog.querySelector('#delete-confirm-btn');
-
-    cancelBtn?.addEventListener('click', () => {
-      if (typeof dialog.close === 'function') {
-        dialog.close();
-      }
-      dialog.removeAttribute('open');
-    });
-
-    confirmBtn?.addEventListener('click', async () => {
-      if (typeof dialog.close === 'function') {
-        dialog.close();
-      }
-      dialog.removeAttribute('open');
-      await performDelete();
-    });
-
+    dialog
+      .querySelector('#delete-cancel-btn')
+      ?.addEventListener('click', () => closeDialog(dialog));
+    dialog
+      .querySelector('#delete-confirm-btn')
+      ?.addEventListener('click', async () => {
+        closeDialog(dialog);
+        await performDelete();
+      });
     dialog.addEventListener('cancel', (ev) => {
       ev.preventDefault();
-      if (typeof dialog.close === 'function') {
-        dialog.close();
-      }
-      dialog.removeAttribute('open');
+      closeDialog(dialog);
     });
+    showModal(dialog);
+  }
 
-    if (typeof dialog.showModal === 'function') {
-      try {
-        dialog.showModal();
-        dialog.setAttribute('open', '');
-      } catch {
-        dialog.setAttribute('open', '');
-      }
-    } else {
-      dialog.setAttribute('open', '');
-    }
+  /**
+   * @param {string} did - dependency issue id to remove
+   * @param {'Dependencies'|'Dependents'} title
+   */
+  function openDepRemoveDialog(did, title) {
+    if (!current) return;
+    const dialog = ensureDepRemoveDialog();
+    const direction =
+      title === 'Dependencies' ? 'dependency on' : 'dependent from';
+    dialog.innerHTML = `
+      <div class="delete-confirm">
+        <h2 class="delete-confirm__title">Remove ${title.slice(0, -1).replace('ies', 'y')}</h2>
+        <p class="delete-confirm__message">
+          Remove ${direction} <strong>${did}</strong>?
+        </p>
+        <div class="delete-confirm__actions">
+          <button type="button" class="btn" id="dep-remove-cancel-btn">Cancel</button>
+          <button type="button" class="btn danger" id="dep-remove-confirm-btn">Remove</button>
+        </div>
+      </div>
+    `;
+    dialog
+      .querySelector('#dep-remove-cancel-btn')
+      ?.addEventListener('click', () => closeDialog(dialog));
+    dialog
+      .querySelector('#dep-remove-confirm-btn')
+      ?.addEventListener('click', async () => {
+        closeDialog(dialog);
+        await performDepRemove(did, title);
+      });
+    dialog.addEventListener('cancel', (ev) => {
+      ev.preventDefault();
+      closeDialog(dialog);
+    });
+    showModal(dialog);
   }
 
   async function performDelete() {
@@ -1352,46 +1405,55 @@ export function createDetailView(
   }
 
   /**
+   * @param {string} did
+   * @param {'Dependencies'|'Dependents'} title
+   */
+  async function performDepRemove(did, title) {
+    if (!current || pending) return;
+    pending = true;
+    try {
+      if (title === 'Dependencies') {
+        const updated = await sendFn('dep-remove', {
+          a: current.id,
+          b: did,
+          view_id: current.id
+        });
+        if (updated && typeof updated === 'object') {
+          current = /** @type {IssueDetail} */ (updated);
+          doRender();
+        }
+      } else {
+        const updated = await sendFn('dep-remove', {
+          a: did,
+          b: current.id,
+          view_id: current.id
+        });
+        if (updated && typeof updated === 'object') {
+          current = /** @type {IssueDetail} */ (updated);
+          doRender();
+        }
+      }
+    } catch (err) {
+      log('dep-remove failed %o', err);
+    } finally {
+      pending = false;
+    }
+  }
+
+  /**
    * Create a click handler for the remove button of a dependency row.
    *
    * @param {string} did
    * @param {'Dependencies'|'Dependents'} title
-   * @returns {(ev: Event) => Promise<void>}
+   * @returns {(ev: Event) => void}
    */
   function makeDepRemoveClick(did, title) {
-    return async (ev) => {
+    return (ev) => {
       ev.stopPropagation();
       if (!current || pending) {
         return;
       }
-      pending = true;
-      try {
-        if (title === 'Dependencies') {
-          const updated = await sendFn('dep-remove', {
-            a: current.id,
-            b: did,
-            view_id: current.id
-          });
-          if (updated && typeof updated === 'object') {
-            current = /** @type {IssueDetail} */ (updated);
-            doRender();
-          }
-        } else {
-          const updated = await sendFn('dep-remove', {
-            a: did,
-            b: current.id,
-            view_id: current.id
-          });
-          if (updated && typeof updated === 'object') {
-            current = /** @type {IssueDetail} */ (updated);
-            doRender();
-          }
-        }
-      } catch (err) {
-        log('dep-remove failed %o', err);
-      } finally {
-        pending = false;
-      }
+      openDepRemoveDialog(did, title);
     };
   }
 
@@ -1547,6 +1609,10 @@ export function createDetailView(
       if (delete_dialog && delete_dialog.parentNode) {
         delete_dialog.parentNode.removeChild(delete_dialog);
         delete_dialog = null;
+      }
+      if (dep_remove_dialog && dep_remove_dialog.parentNode) {
+        dep_remove_dialog.parentNode.removeChild(dep_remove_dialog);
+        dep_remove_dialog = null;
       }
     }
   };

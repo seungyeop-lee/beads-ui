@@ -78,6 +78,15 @@ describe('views/detail dependencies', () => {
     expect(rm).toBeTruthy();
     rm?.dispatchEvent(new window.Event('click'));
 
+    // Confirm in the dialog
+    const dialog = /** @type {HTMLDialogElement} */ (
+      document.getElementById('dep-remove-confirm-dialog')
+    );
+    expect(dialog).toBeTruthy();
+    const confirmBtn = dialog?.querySelector('#dep-remove-confirm-btn');
+    expect(confirmBtn).toBeTruthy();
+    confirmBtn?.dispatchEvent(new window.Event('click'));
+
     await Promise.resolve();
     const calls = send.mock.calls.map((c) => c[0]);
     expect(calls.includes('dep-remove')).toBe(true);
