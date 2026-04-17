@@ -31,6 +31,21 @@ project-specific conventions.
 
 Only `blocks` dependencies affect the ready work queue.
 
+### Issue Content
+
+- Write all narrative fields (title, description, notes, design) in **Korean**.
+  Identifiers, commands, file paths, and code snippets stay in their original
+  form.
+- Structure every issue description so that **WHAT** and **METHOD** are
+  explicit:
+  - **WHAT** — the target problem or outcome this issue addresses (why it
+    exists, what must change).
+  - **METHOD** — the agreed approach for resolving it (how the change will be
+    made). Record only the approach here; implementation detail belongs in
+    `notes` after the work is done (step 7).
+- Use clear section headings (e.g., `## 무엇을 (WHAT)`, `## 어떻게 (METHOD)`)
+  so both elements are unambiguously locatable.
+
 ### Agent Workflow
 
 Every task that modifies files follows the 9 steps below. This applies even when
