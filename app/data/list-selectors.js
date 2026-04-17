@@ -37,9 +37,10 @@ export function createListSelectors(issue_stores = undefined) {
 
   /**
    * Get entities for a Board column with column-specific sort.
+   * mode 'all' returns unsorted (caller handles column splitting + sorting).
    *
    * @param {string} client_id
-   * @param {'ready'|'blocked'|'in_progress'|'closed'} mode
+   * @param {'ready'|'blocked'|'in_progress'|'closed'|'all'} mode
    * @returns {IssueLite[]}
    */
   function selectBoardColumn(client_id, mode) {
@@ -51,6 +52,8 @@ export function createListSelectors(issue_stores = undefined) {
       arr.sort(cmpPriorityThenCreated);
     } else if (mode === 'closed') {
       arr.sort(cmpClosedDesc);
+    } else if (mode === 'all') {
+      // No sort — caller splits by _board_column and sorts per-column
     } else {
       // ready/blocked share the same sort
       arr.sort(cmpPriorityThenCreated);

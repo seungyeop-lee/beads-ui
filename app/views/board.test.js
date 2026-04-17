@@ -56,7 +56,8 @@ describe('views/board', () => {
         priority: 1,
         created_at: new Date('2025-10-22T07:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-22T07:00:00.000Z').getTime(),
-        issue_type: 'task'
+        issue_type: 'task',
+        _board_column: 'blocked'
       },
       {
         id: 'B-1',
@@ -64,7 +65,8 @@ describe('views/board', () => {
         priority: 0,
         created_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
-        issue_type: 'bug'
+        issue_type: 'bug',
+        _board_column: 'blocked'
       },
       // Ready
       {
@@ -73,7 +75,8 @@ describe('views/board', () => {
         priority: 1,
         created_at: new Date('2025-10-20T08:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-20T08:00:00.000Z').getTime(),
-        issue_type: 'task'
+        issue_type: 'task',
+        _board_column: 'ready'
       },
       {
         id: 'R-1',
@@ -81,7 +84,8 @@ describe('views/board', () => {
         priority: 0,
         created_at: new Date('2025-10-21T08:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-21T08:00:00.000Z').getTime(),
-        issue_type: 'bug'
+        issue_type: 'bug',
+        _board_column: 'ready'
       },
       {
         id: 'R-3',
@@ -89,7 +93,8 @@ describe('views/board', () => {
         priority: 1,
         created_at: new Date('2025-10-22T08:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-22T08:00:00.000Z').getTime(),
-        issue_type: 'feature'
+        issue_type: 'feature',
+        _board_column: 'ready'
       },
       // In progress
       {
@@ -97,14 +102,16 @@ describe('views/board', () => {
         title: 'p1',
         created_at: new Date('2025-10-23T09:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-23T09:00:00.000Z').getTime(),
-        issue_type: 'task'
+        issue_type: 'task',
+        _board_column: 'in_progress'
       },
       {
         id: 'P-2',
         title: 'p2',
         created_at: new Date('2025-10-22T09:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-22T09:00:00.000Z').getTime(),
-        issue_type: 'feature'
+        issue_type: 'feature',
+        _board_column: 'in_progress'
       },
       // Closed
       {
@@ -112,40 +119,24 @@ describe('views/board', () => {
         title: 'c2',
         updated_at: new Date('2025-10-20T09:00:00.000Z').getTime(),
         closed_at: new Date(now).getTime(),
-        issue_type: 'task'
+        issue_type: 'task',
+        _board_column: 'closed'
       },
       {
         id: 'C-1',
         title: 'c1',
         updated_at: new Date('2025-10-21T09:00:00.000Z').getTime(),
         closed_at: new Date(now - 1000).getTime(),
-        issue_type: 'bug'
+        issue_type: 'bug',
+        _board_column: 'closed'
       }
     ];
     const issueStores = createTestIssueStores();
-    issueStores.getStore('tab:board:blocked').applyPush({
+    issueStores.getStore('tab:board').applyPush({
       type: 'snapshot',
-      id: 'tab:board:blocked',
+      id: 'tab:board',
       revision: 1,
-      issues: issues.filter((i) => i.id.startsWith('B-'))
-    });
-    issueStores.getStore('tab:board:ready').applyPush({
-      type: 'snapshot',
-      id: 'tab:board:ready',
-      revision: 1,
-      issues: issues.filter((i) => i.id.startsWith('R-'))
-    });
-    issueStores.getStore('tab:board:in-progress').applyPush({
-      type: 'snapshot',
-      id: 'tab:board:in-progress',
-      revision: 1,
-      issues: issues.filter((i) => i.id.startsWith('P-'))
-    });
-    issueStores.getStore('tab:board:closed').applyPush({
-      type: 'snapshot',
-      id: 'tab:board:closed',
-      revision: 1,
-      issues: issues.filter((i) => i.id.startsWith('C-'))
+      issues
     });
 
     /** @type {string[]} */
@@ -201,9 +192,9 @@ describe('views/board', () => {
 
     const now = Date.now();
     const issueStores = createTestIssueStores();
-    issueStores.getStore('tab:board:blocked').applyPush({
+    issueStores.getStore('tab:board').applyPush({
       type: 'snapshot',
-      id: 'tab:board:blocked',
+      id: 'tab:board',
       revision: 1,
       issues: [
         {
@@ -211,70 +202,56 @@ describe('views/board', () => {
           title: 'blocked 1',
           created_at: now - 5,
           updated_at: now - 5,
-          issue_type: 'task'
+          issue_type: 'task',
+          _board_column: 'blocked'
         },
         {
           id: 'B-2',
           title: 'blocked 2',
           created_at: now - 4,
           updated_at: now - 4,
-          issue_type: 'task'
-        }
-      ]
-    });
-    issueStores.getStore('tab:board:ready').applyPush({
-      type: 'snapshot',
-      id: 'tab:board:ready',
-      revision: 1,
-      issues: [
+          issue_type: 'task',
+          _board_column: 'blocked'
+        },
         {
           id: 'R-1',
           title: 'ready 1',
           created_at: now - 3,
           updated_at: now - 3,
-          issue_type: 'feature'
+          issue_type: 'feature',
+          _board_column: 'ready'
         },
         {
           id: 'R-2',
           title: 'ready 2',
           created_at: now - 2,
           updated_at: now - 2,
-          issue_type: 'task'
+          issue_type: 'task',
+          _board_column: 'ready'
         },
         {
           id: 'R-3',
           title: 'ready 3',
           created_at: now - 1,
           updated_at: now - 1,
-          issue_type: 'task'
-        }
-      ]
-    });
-    issueStores.getStore('tab:board:in-progress').applyPush({
-      type: 'snapshot',
-      id: 'tab:board:in-progress',
-      revision: 1,
-      issues: [
+          issue_type: 'task',
+          _board_column: 'ready'
+        },
         {
           id: 'P-1',
           title: 'progress 1',
           created_at: now,
           updated_at: now,
-          issue_type: 'feature'
-        }
-      ]
-    });
-    issueStores.getStore('tab:board:closed').applyPush({
-      type: 'snapshot',
-      id: 'tab:board:closed',
-      revision: 1,
-      issues: [
+          issue_type: 'feature',
+          _board_column: 'in_progress'
+        },
         {
           id: 'C-1',
           title: 'closed 1',
           updated_at: now,
           closed_at: now,
-          issue_type: 'chore'
+          issue_type: 'chore',
+          _board_column: 'closed'
         }
       ]
     });
@@ -318,36 +295,31 @@ describe('views/board', () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
-    const issues = [
-      {
-        id: 'X-1',
-        title: 'x1',
-        priority: 1,
-        created_at: '2025-10-23T10:00:00.000Z',
-        updated_at: '2025-10-23T10:00:00.000Z',
-        issue_type: 'task'
-      },
-      {
-        id: 'X-2',
-        title: 'x2',
-        priority: 1,
-        created_at: '2025-10-23T09:00:00.000Z',
-        updated_at: '2025-10-23T09:00:00.000Z',
-        issue_type: 'task'
-      }
-    ];
     const issueStores = createTestIssueStores();
-    issueStores.getStore('tab:board:ready').applyPush({
+    issueStores.getStore('tab:board').applyPush({
       type: 'snapshot',
-      id: 'tab:board:ready',
+      id: 'tab:board',
       revision: 1,
-      issues: issues
-    });
-    issueStores.getStore('tab:board:in-progress').applyPush({
-      type: 'snapshot',
-      id: 'tab:board:in-progress',
-      revision: 1,
-      issues: issues.filter((i) => i.id.startsWith('X-2'))
+      issues: [
+        {
+          id: 'X-1',
+          title: 'x1',
+          priority: 1,
+          created_at: '2025-10-23T10:00:00.000Z',
+          updated_at: '2025-10-23T10:00:00.000Z',
+          issue_type: 'task',
+          _board_column: 'ready'
+        },
+        {
+          id: 'X-2',
+          title: 'x2',
+          priority: 1,
+          created_at: '2025-10-23T09:00:00.000Z',
+          updated_at: '2025-10-23T09:00:00.000Z',
+          issue_type: 'task',
+          _board_column: 'in_progress'
+        }
+      ]
     });
 
     const view = createBoardView(

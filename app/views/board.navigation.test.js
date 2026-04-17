@@ -48,13 +48,23 @@ describe('views/board keyboard navigation', () => {
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
     const issues = [
-      { id: 'P-1', title: 'p1', updated_at: '2025-10-23T10:00:00.000Z' },
-      { id: 'P-2', title: 'p2', updated_at: '2025-10-23T09:00:00.000Z' }
+      {
+        id: 'P-1',
+        title: 'p1',
+        updated_at: '2025-10-23T10:00:00.000Z',
+        _board_column: 'in_progress'
+      },
+      {
+        id: 'P-2',
+        title: 'p2',
+        updated_at: '2025-10-23T09:00:00.000Z',
+        _board_column: 'in_progress'
+      }
     ];
     const issueStores = createTestIssueStores();
-    issueStores.getStore('tab:board:in-progress').applyPush({
+    issueStores.getStore('tab:board').applyPush({
       type: 'snapshot',
-      id: 'tab:board:in-progress',
+      id: 'tab:board',
       revision: 1,
       issues
     });
@@ -94,22 +104,31 @@ describe('views/board keyboard navigation', () => {
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
     const issues = [
-      { id: 'B-1', title: 'b1', updated_at: '2025-10-23T10:00:00.000Z' },
-      { id: 'P-1', title: 'p1', updated_at: '2025-10-23T10:00:00.000Z' },
-      { id: 'P-2', title: 'p2', updated_at: '2025-10-23T09:00:00.000Z' }
+      {
+        id: 'B-1',
+        title: 'b1',
+        updated_at: '2025-10-23T10:00:00.000Z',
+        _board_column: 'blocked'
+      },
+      {
+        id: 'P-1',
+        title: 'p1',
+        updated_at: '2025-10-23T10:00:00.000Z',
+        _board_column: 'in_progress'
+      },
+      {
+        id: 'P-2',
+        title: 'p2',
+        updated_at: '2025-10-23T09:00:00.000Z',
+        _board_column: 'in_progress'
+      }
     ];
     const issueStores = createTestIssueStores();
-    issueStores.getStore('tab:board:blocked').applyPush({
+    issueStores.getStore('tab:board').applyPush({
       type: 'snapshot',
-      id: 'tab:board:blocked',
+      id: 'tab:board',
       revision: 1,
-      issues: issues.filter((i) => i.id.startsWith('B-'))
-    });
-    issueStores.getStore('tab:board:in-progress').applyPush({
-      type: 'snapshot',
-      id: 'tab:board:in-progress',
-      revision: 1,
-      issues: issues.filter((i) => i.id.startsWith('P-'))
+      issues
     });
 
     /** @type {string[]} */

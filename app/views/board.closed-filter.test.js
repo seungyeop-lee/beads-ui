@@ -54,19 +54,26 @@ describe('views/board closed filter', () => {
       {
         id: 'C-1',
         title: 'four days',
-        closed_at: new Date(now - 4 * oneDay).getTime()
+        closed_at: new Date(now - 4 * oneDay).getTime(),
+        _board_column: 'closed'
       },
       {
         id: 'C-2',
         title: 'yesterday',
-        closed_at: new Date(now - 1 * oneDay).getTime()
+        closed_at: new Date(now - 1 * oneDay).getTime(),
+        _board_column: 'closed'
       },
-      { id: 'C-3', title: 'today', closed_at: new Date(now).getTime() }
+      {
+        id: 'C-3',
+        title: 'today',
+        closed_at: new Date(now).getTime(),
+        _board_column: 'closed'
+      }
     ];
     const issueStores = createTestIssueStores();
-    issueStores.getStore('tab:board:closed').applyPush({
+    issueStores.getStore('tab:board').applyPush({
       type: 'snapshot',
-      id: 'tab:board:closed',
+      id: 'tab:board',
       revision: 1,
       issues
     });

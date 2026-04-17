@@ -66,7 +66,7 @@ vi.mock('./ws.js', () => {
 });
 
 describe('push stores integration (board view)', () => {
-  test('updates only the matching column on push events (multi-sub isolation)', async () => {
+  test('updates columns from unified board subscription on push events', async () => {
     const client = /** @type {any} */ (createWsClient());
     window.location.hash = '#/board';
     document.body.innerHTML = '<main id="app"></main>';
@@ -82,36 +82,54 @@ describe('push stores integration (board view)', () => {
       document.querySelectorAll('#in-progress-col .board-card').length
     ).toBe(0);
 
-    // Send per-subscription snapshots
+    // Send unified board snapshot with _board_column tags
     client._trigger('snapshot', {
       type: 'snapshot',
-      id: 'tab:board:ready',
+      id: 'tab:board',
       revision: 1,
       issues: [
-        { id: 'R-1', title: 'ready 1', priority: 1, updated_at: 10_000 },
-        { id: 'R-2', title: 'ready 2', priority: 2, updated_at: 11_000 }
+        {
+          id: 'R-1',
+          title: 'ready 1',
+          priority: 1,
+          updated_at: 10_000,
+          _board_column: 'ready'
+        },
+        {
+          id: 'R-2',
+          title: 'ready 2',
+          priority: 2,
+          updated_at: 11_000,
+          _board_column: 'ready'
+        },
+        {
+          id: 'P-1',
+          title: 'prog 1',
+          updated_at: 20_000,
+          _board_column: 'in_progress'
+        }
       ]
-    });
-    client._trigger('snapshot', {
-      type: 'snapshot',
-      id: 'tab:board:in-progress',
-      revision: 1,
-      issues: [{ id: 'P-1', title: 'prog 1', updated_at: 20_000 }]
     });
     await Promise.resolve();
 
-    // Verify columns reflect only their subscription data
+    // Verify columns reflect their data
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(2);
     expect(
       document.querySelectorAll('#in-progress-col .board-card').length
     ).toBe(1);
 
-    // Upsert into Ready only
+    // Upsert: new ready item
     client._trigger('upsert', {
       type: 'upsert',
-      id: 'tab:board:ready',
+      id: 'tab:board',
       revision: 2,
-      issue: { id: 'R-3', title: 'ready 3', priority: 1, updated_at: 12_000 }
+      issue: {
+        id: 'R-3',
+        title: 'ready 3',
+        priority: 1,
+        updated_at: 12_000,
+        _board_column: 'ready'
+      }
     });
     await Promise.resolve();
 
@@ -121,11 +139,11 @@ describe('push stores integration (board view)', () => {
       document.querySelectorAll('#in-progress-col .board-card').length
     ).toBe(1);
 
-    // Delete from In-progress only
+    // Delete in-progress item
     client._trigger('delete', {
       type: 'delete',
-      id: 'tab:board:in-progress',
-      revision: 2,
+      id: 'tab:board',
+      revision: 3,
       issue_id: 'P-1'
     });
     await Promise.resolve();
@@ -149,11 +167,23 @@ describe('push stores integration (board view)', () => {
     // Initial snapshot
     client._trigger('snapshot', {
       type: 'snapshot',
-      id: 'tab:board:ready',
+      id: 'tab:board',
       revision: 1,
       issues: [
-        { id: 'R-1', title: 'r1', priority: 1, updated_at: 10_000 },
-        { id: 'R-2', title: 'r2', priority: 2, updated_at: 10_100 }
+        {
+          id: 'R-1',
+          title: 'r1',
+          priority: 1,
+          updated_at: 10_000,
+          _board_column: 'ready'
+        },
+        {
+          id: 'R-2',
+          title: 'r2',
+          priority: 2,
+          updated_at: 10_100,
+          _board_column: 'ready'
+        }
       ]
     });
     await Promise.resolve();
@@ -164,11 +194,23 @@ describe('push stores integration (board view)', () => {
     client._emitConn('open');
     client._trigger('snapshot', {
       type: 'snapshot',
-      id: 'tab:board:ready',
+      id: 'tab:board',
       revision: 1,
       issues: [
-        { id: 'R-1', title: 'r1', priority: 1, updated_at: 10_000 },
-        { id: 'R-2', title: 'r2', priority: 2, updated_at: 10_100 }
+        {
+          id: 'R-1',
+          title: 'r1',
+          priority: 1,
+          updated_at: 10_000,
+          _board_column: 'ready'
+        },
+        {
+          id: 'R-2',
+          title: 'r2',
+          priority: 2,
+          updated_at: 10_100,
+          _board_column: 'ready'
+        }
       ]
     });
     await Promise.resolve();
@@ -178,9 +220,15 @@ describe('push stores integration (board view)', () => {
     // Newer upsert after replay updates item without duplication
     client._trigger('upsert', {
       type: 'upsert',
-      id: 'tab:board:ready',
+      id: 'tab:board',
       revision: 2,
-      issue: { id: 'R-2', title: 'r2!', priority: 2, updated_at: 10_200 }
+      issue: {
+        id: 'R-2',
+        title: 'r2!',
+        priority: 2,
+        updated_at: 10_200,
+        _board_column: 'ready'
+      }
     });
     await Promise.resolve();
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(2);

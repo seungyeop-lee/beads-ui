@@ -572,32 +572,45 @@ export function createBoardView(
   }
 
   /**
-   * Compose lists from subscriptions + issues store and render.
+   * Compose lists from single board subscription store, splitting by _board_column.
    */
   function refreshFromStores() {
     try {
       if (selectors) {
-        const in_progress = selectors.selectBoardColumn(
-          'tab:board:in-progress',
-          'in_progress'
-        );
-        const blocked = selectors.selectBoardColumn(
-          'tab:board:blocked',
-          'blocked'
-        );
-        const ready_raw = selectors.selectBoardColumn(
-          'tab:board:ready',
-          'ready'
-        );
-        const closed = selectors.selectBoardColumn(
-          'tab:board:closed',
-          'closed'
-        );
+        const all = selectors.selectBoardColumn('tab:board', 'all');
 
-        // Ready excludes items that are in progress
+        /** @type {IssueLite[]} */
+        const ready_raw = [];
+        /** @type {IssueLite[]} */
+        const blocked = [];
+        /** @type {IssueLite[]} */
+        const in_progress = [];
+        /** @type {IssueLite[]} */
+        const closed = [];
         /** @type {Set<string>} */
-        const in_prog_ids = new Set(in_progress.map((i) => i.id));
+        const in_prog_ids = new Set();
+
+        for (const item of all) {
+          const col = /** @type {any} */ (item)._board_column;
+          if (col === 'in_progress') {
+            in_progress.push(item);
+            in_prog_ids.add(item.id);
+          } else if (col === 'blocked') {
+            blocked.push(item);
+          } else if (col === 'closed') {
+            closed.push(item);
+          } else {
+            ready_raw.push(item);
+          }
+        }
+        // Ready excludes items that are in progress (safety dedup)
         const ready = ready_raw.filter((i) => !in_prog_ids.has(i.id));
+
+        // Sort each column by its rules
+        ready.sort(cmpPriorityThenCreated);
+        blocked.sort(cmpPriorityThenCreated);
+        in_progress.sort(cmpPriorityThenCreated);
+        closed.sort(cmpClosedDesc);
 
         list_ready = ready;
         list_blocked = blocked;
@@ -631,9 +644,6 @@ export function createBoardView(
       // Compose lists from subscriptions + issues store
       log('load');
       refreshFromStores();
-      // If nothing is present yet (e.g., immediately after switching back
-      // to the Board and before list-delta arrives), fetch via data layer as
-      // a fallback so the board is not empty on initial display.
       try {
         const has_subs = Boolean(subscriptions && subscriptions.selectors);
         /**
@@ -654,11 +664,7 @@ export function createBoardView(
             return 0;
           }
         };
-        const total_items =
-          cnt('tab:board:ready') +
-          cnt('tab:board:blocked') +
-          cnt('tab:board:in-progress') +
-          cnt('tab:board:closed');
+        const total_items = cnt('tab:board');
         const data = /** @type {any} */ (_data);
         const can_fetch =
           data &&

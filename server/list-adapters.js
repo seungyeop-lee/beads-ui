@@ -39,6 +39,10 @@ export function mapSubscriptionToBdArgs(spec) {
         '1000'
       ];
     }
+    case 'board-issues': {
+      // Handled by fetchBoardIssues in fetchListForSubscription
+      return [];
+    }
     case 'filtered-issues': {
       const p = spec.params || {};
       const raw = typeof p.statuses === 'string' ? p.statuses : '';
@@ -132,6 +136,11 @@ export function normalizeIssueList(value) {
  * @returns {Promise<FetchListResultSuccess | FetchListResultFailure>}
  */
 export async function fetchListForSubscription(spec, options = {}) {
+  // Board-issues: unified fetch for all board columns in a single subscription
+  if (String(spec.type) === 'board-issues') {
+    return fetchBoardIssues(options);
+  }
+
   /** @type {string[]} */
   let args;
   try {
@@ -279,4 +288,78 @@ function parseTimestamp(v) {
     return Number.isFinite(v) ? v : 0;
   }
   return 0;
+}
+
+/**
+ * Fetch all board data (ready, blocked, in_progress, closed) in parallel
+ * and merge into a single list with `_board_column` tags.
+ *
+ * Priority (last write wins): closed < ready < in_progress < blocked.
+ *
+ * @param {{ cwd?: string }} [options]
+ * @returns {Promise<FetchListResultSuccess | FetchListResultFailure>}
+ */
+async function fetchBoardIssues(options = {}) {
+  const cwd = options.cwd;
+  const [readyRes, blockedRes, inProgRes, closedRes] = await Promise.all([
+    runBdJson(['ready', '--limit', '1000', '--json'], { cwd }),
+    runBdJson(['blocked', '--json'], { cwd }),
+    runBdJson(['list', '--json', '--tree=false', '--status', 'in_progress'], {
+      cwd
+    }),
+    runBdJson(
+      [
+        'list',
+        '--json',
+        '--tree=false',
+        '--status',
+        'closed',
+        '--limit',
+        '1000'
+      ],
+      { cwd }
+    )
+  ]);
+  /** @type {Map<string, { id: string, created_at: number, updated_at: number, closed_at: number | null } & Record<string, unknown>>} */
+  const itemsById = new Map();
+
+  // 1. closed (lowest priority)
+  if (closedRes.code === 0 && Array.isArray(closedRes.stdoutJson)) {
+    for (const it of normalizeIssueList(closedRes.stdoutJson)) {
+      itemsById.set(it.id, { ...it, _board_column: 'closed' });
+    }
+  }
+  // 2. ready
+  if (readyRes.code === 0 && Array.isArray(readyRes.stdoutJson)) {
+    for (const it of normalizeIssueList(readyRes.stdoutJson)) {
+      itemsById.set(it.id, { ...it, _board_column: 'ready' });
+    }
+  }
+  // 3. in_progress (overrides ready — matches existing client-side dedup)
+  if (inProgRes.code === 0 && Array.isArray(inProgRes.stdoutJson)) {
+    for (const it of normalizeIssueList(inProgRes.stdoutJson)) {
+      itemsById.set(it.id, { ...it, _board_column: 'in_progress' });
+    }
+  }
+  // 4. blocked (highest priority)
+  if (blockedRes.code === 0 && Array.isArray(blockedRes.stdoutJson)) {
+    for (const it of normalizeIssueList(blockedRes.stdoutJson)) {
+      itemsById.set(it.id, { ...it, _board_column: 'blocked' });
+    }
+  }
+
+  const items = Array.from(itemsById.values());
+  if (
+    items.length === 0 &&
+    readyRes.code !== 0 &&
+    blockedRes.code !== 0 &&
+    inProgRes.code !== 0 &&
+    closedRes.code !== 0
+  ) {
+    return {
+      ok: false,
+      error: { code: 'bd_error', message: 'All board queries failed' }
+    };
+  }
+  return { ok: true, items };
 }

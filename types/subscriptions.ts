@@ -39,6 +39,7 @@ export interface DependencyRef {
 export type SubscriptionType =
   | 'all-issues'
   | 'epics'
+  | 'board-issues'
   | 'blocked-issues'
   | 'ready-issues'
   | 'in-progress-issues'

@@ -22,7 +22,7 @@
  */
 
 /**
- * @typedef {{ updated_at: number, closed_at: number | null }} ItemMeta
+ * @typedef {{ updated_at: number, closed_at: number | null, _board_column?: string }} ItemMeta
  */
 
 /**
@@ -88,7 +88,11 @@ export function computeDelta(prev, next) {
       added.push(id);
       continue;
     }
-    if (p.updated_at !== meta.updated_at || p.closed_at !== meta.closed_at) {
+    if (
+      p.updated_at !== meta.updated_at ||
+      p.closed_at !== meta.closed_at ||
+      p._board_column !== meta._board_column
+    ) {
       updated.push(id);
     }
   }
@@ -122,7 +126,9 @@ export function toItemsMap(items) {
       const n = Number(it.closed_at);
       closed_at = Number.isFinite(n) ? n : null;
     }
-    map.set(it.id, { updated_at, closed_at });
+    const _board_column =
+      typeof it._board_column === 'string' ? it._board_column : undefined;
+    map.set(it.id, { updated_at, closed_at, _board_column });
   }
   return map;
 }

@@ -213,31 +213,12 @@ export function bootstrap(root_element) {
         void unsub_epics_tab().catch(() => {});
         unsub_epics_tab = null;
       }
-      if (unsub_board_ready) {
-        void unsub_board_ready().catch(() => {});
-        unsub_board_ready = null;
-      }
-      if (unsub_board_in_progress) {
-        void unsub_board_in_progress().catch(() => {});
-        unsub_board_in_progress = null;
-      }
-      if (unsub_board_closed) {
-        void unsub_board_closed().catch(() => {});
-        unsub_board_closed = null;
-      }
-      if (unsub_board_blocked) {
-        void unsub_board_blocked().catch(() => {});
-        unsub_board_blocked = null;
+      if (unsub_board) {
+        void unsub_board().catch(() => {});
+        unsub_board = null;
       }
       // Clear all subscription stores
-      const storeIds = [
-        'tab:issues',
-        'tab:epics',
-        'tab:board:ready',
-        'tab:board:in-progress',
-        'tab:board:closed',
-        'tab:board:blocked'
-      ];
+      const storeIds = ['tab:issues', 'tab:epics', 'tab:board'];
       for (const id of storeIds) {
         try {
           sub_issue_stores.unregister(id);
@@ -708,13 +689,7 @@ export function bootstrap(root_element) {
     /** @type {null | (() => Promise<void>)} */
     let unsub_epics_tab = null;
     /** @type {null | (() => Promise<void>)} */
-    let unsub_board_ready = null;
-    /** @type {null | (() => Promise<void>)} */
-    let unsub_board_in_progress = null;
-    /** @type {null | (() => Promise<void>)} */
-    let unsub_board_closed = null;
-    /** @type {null | (() => Promise<void>)} */
-    let unsub_board_blocked = null;
+    let unsub_board = null;
 
     // Track in-flight subscriptions to prevent duplicates during rapid view switching
     /** @type {Set<string>} */
@@ -814,140 +789,36 @@ export function bootstrap(root_element) {
 
       // Board tab subscribes to lists used by columns
       if (s.view === 'board') {
-        // Ready column
-        if (
-          !unsub_board_ready &&
-          !pending_subscriptions.has('tab:board:ready')
-        ) {
+        // Unified board subscription
+        if (!unsub_board && !pending_subscriptions.has('tab:board')) {
           try {
-            sub_issue_stores.register('tab:board:ready', {
-              type: 'ready-issues'
+            sub_issue_stores.register('tab:board', {
+              type: 'board-issues'
             });
           } catch (err) {
-            log('register board:ready store failed: %o', err);
+            log('register board store failed: %o', err);
           }
-          pending_subscriptions.add('tab:board:ready');
+          pending_subscriptions.add('tab:board');
           void subscriptions
-            .subscribeList('tab:board:ready', { type: 'ready-issues' })
-            .then((u) => (unsub_board_ready = u))
+            .subscribeList('tab:board', { type: 'board-issues' })
+            .then((u) => (unsub_board = u))
             .catch((err) => {
-              log('subscribe board ready failed: %o', err);
-              showFatalFromError(err, 'board (Ready)');
+              log('subscribe board failed: %o', err);
+              showFatalFromError(err, 'board');
             })
             .finally(() => {
-              pending_subscriptions.delete('tab:board:ready');
-            });
-        }
-        // In Progress column
-        if (
-          !unsub_board_in_progress &&
-          !pending_subscriptions.has('tab:board:in-progress')
-        ) {
-          try {
-            sub_issue_stores.register('tab:board:in-progress', {
-              type: 'in-progress-issues'
-            });
-          } catch (err) {
-            log('register board:in-progress store failed: %o', err);
-          }
-          pending_subscriptions.add('tab:board:in-progress');
-          void subscriptions
-            .subscribeList('tab:board:in-progress', {
-              type: 'in-progress-issues'
-            })
-            .then((u) => (unsub_board_in_progress = u))
-            .catch((err) => {
-              log('subscribe board in-progress failed: %o', err);
-              showFatalFromError(err, 'board (In Progress)');
-            })
-            .finally(() => {
-              pending_subscriptions.delete('tab:board:in-progress');
-            });
-        }
-        // Closed column
-        if (
-          !unsub_board_closed &&
-          !pending_subscriptions.has('tab:board:closed')
-        ) {
-          try {
-            sub_issue_stores.register('tab:board:closed', {
-              type: 'closed-issues'
-            });
-          } catch (err) {
-            log('register board:closed store failed: %o', err);
-          }
-          pending_subscriptions.add('tab:board:closed');
-          void subscriptions
-            .subscribeList('tab:board:closed', { type: 'closed-issues' })
-            .then((u) => (unsub_board_closed = u))
-            .catch((err) => {
-              log('subscribe board closed failed: %o', err);
-              showFatalFromError(err, 'board (Closed)');
-            })
-            .finally(() => {
-              pending_subscriptions.delete('tab:board:closed');
-            });
-        }
-        // Blocked column
-        if (
-          !unsub_board_blocked &&
-          !pending_subscriptions.has('tab:board:blocked')
-        ) {
-          try {
-            sub_issue_stores.register('tab:board:blocked', {
-              type: 'blocked-issues'
-            });
-          } catch (err) {
-            log('register board:blocked store failed: %o', err);
-          }
-          pending_subscriptions.add('tab:board:blocked');
-          void subscriptions
-            .subscribeList('tab:board:blocked', { type: 'blocked-issues' })
-            .then((u) => (unsub_board_blocked = u))
-            .catch((err) => {
-              log('subscribe board blocked failed: %o', err);
-              showFatalFromError(err, 'board (Blocked)');
-            })
-            .finally(() => {
-              pending_subscriptions.delete('tab:board:blocked');
+              pending_subscriptions.delete('tab:board');
             });
         }
       } else {
-        // Unsubscribe all board lists when leaving the board view
-        if (unsub_board_ready) {
-          void unsub_board_ready().catch(() => {});
-          unsub_board_ready = null;
+        // Unsubscribe board when leaving the board view
+        if (unsub_board) {
+          void unsub_board().catch(() => {});
+          unsub_board = null;
           try {
-            sub_issue_stores.unregister('tab:board:ready');
+            sub_issue_stores.unregister('tab:board');
           } catch (err) {
-            log('unregister board:ready failed: %o', err);
-          }
-        }
-        if (unsub_board_in_progress) {
-          void unsub_board_in_progress().catch(() => {});
-          unsub_board_in_progress = null;
-          try {
-            sub_issue_stores.unregister('tab:board:in-progress');
-          } catch (err) {
-            log('unregister board:in-progress failed: %o', err);
-          }
-        }
-        if (unsub_board_closed) {
-          void unsub_board_closed().catch(() => {});
-          unsub_board_closed = null;
-          try {
-            sub_issue_stores.unregister('tab:board:closed');
-          } catch (err) {
-            log('unregister board:closed failed: %o', err);
-          }
-        }
-        if (unsub_board_blocked) {
-          void unsub_board_blocked().catch(() => {});
-          unsub_board_blocked = null;
-          try {
-            sub_issue_stores.unregister('tab:board:blocked');
-          } catch (err) {
-            log('unregister board:blocked failed: %o', err);
+            log('unregister board failed: %o', err);
           }
         }
       }
