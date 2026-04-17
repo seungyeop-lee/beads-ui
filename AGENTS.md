@@ -61,6 +61,56 @@ meaning.
 Work discovered mid-execution creates a new issue with a
 `discovered-from:<parent-id>` dependency — continue the parent, do not switch.
 
+### Workflow Examples
+
+This section shows command sequences used repeatedly in this project. The
+generic `bd` command reference is provided by the SessionStart hook and is not
+duplicated here.
+
+#### Starting Work
+
+```
+bd ready                              # List unblocked issues
+bd show <id>                          # Review issue details
+# After user says "승인":
+bd update <id> --status=in_progress   # Transition before touching any file
+```
+
+#### Completing Work
+
+```
+# 1. Stage only files belonging to this issue
+git add <file1> <file2>
+
+# 2. Commit
+git commit -m "feat(scope): ..."
+
+# 3. Record commit on the issue
+bd comments add <id> "commit: $(git rev-parse --short HEAD) feat(scope): ..."
+
+# 4. Notes — only for durable context not already in diff/commit/comment
+bd update <id> --notes="..."
+
+# 5. Close
+bd close <id>
+```
+
+`--notes` is reserved for decision rationale, verification outcomes, or
+feedback-driven reasoning that is not already captured in the diff, commit, or
+comment.
+
+#### Mid-Execution Discovery
+
+Do not interrupt the current issue. Create a new issue and link it with a
+`discovered-from` dependency:
+
+```
+bd create --title="Newly discovered work" --description="..." --type=task
+bd dep add <new-id> <current-id>      # new-id depends on current-id
+```
+
+Then continue working on the current issue.
+
 ### Concurrency
 
 Only **one** issue may be `in_progress` per session. Multiple issues can be
