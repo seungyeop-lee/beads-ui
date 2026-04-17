@@ -1173,6 +1173,53 @@ input.inline-edit:focus {
     accent-color: var(--status-closed-base);
   }
 }
+.epic-toggle-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 0;
+  padding: 2px 6px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1;
+}
+.epic-toggle-btn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.epic-toggle-btn:focus-visible {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  outline: 2px solid color-mix(in srgb, currentColor 55%, transparent);
+  outline-offset: var(--outline-offset-s);
+}
+.epic-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.epic-title .epic-title-text {
+  min-width: 0;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.epic-title .epic-title-text:hover {
+  text-decoration: underline;
+}
+.epic-title .epic-title-text:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--link) 60%, transparent);
+  outline-offset: var(--outline-offset-l);
+}
+.epic-progress {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .epic-children {
   padding: 8px 12px 12px;
 }

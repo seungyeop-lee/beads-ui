@@ -86,21 +86,48 @@ export function createEpicsView(
     const is_loading = loading.has(id);
     return html`
       <div class="epic-group" data-epic-id=${id}>
-        <div
-          class="epic-header"
-          @click=${() => toggle(id)}
-          role="button"
-          tabindex="0"
-          aria-expanded=${is_open}
-        >
-          ${createIssueIdRenderer(id, { class_name: 'mono' })}
-          <span class="text-truncate" style="margin-left:8px"
-            >${epic.title || '(no title)'}</span
+        <div class="epic-header" @click=${() => toggle(id)}>
+          <button
+            type="button"
+            class="epic-toggle-btn"
+            aria-expanded=${is_open}
+            aria-label=${is_open ? 'Collapse epic' : 'Expand epic'}
+            title=${is_open ? 'Collapse' : 'Expand'}
+            @click=${
+              /** @param {MouseEvent} e */ (e) => {
+                e.stopPropagation();
+                toggle(id);
+              }
+            }
           >
-          <span
-            class="epic-progress"
-            style="margin-left:auto; display:flex; align-items:center; gap:8px;"
-          >
+            ${is_open ? '▼' : '▶'}
+          </button>
+          <span class="epic-title">
+            ${createIssueIdRenderer(id, { class_name: 'mono' })}
+            <span
+              class="epic-title-text text-truncate"
+              role="button"
+              tabindex="0"
+              aria-label="Open epic"
+              @click=${
+                /** @param {MouseEvent} e */ (e) => {
+                  e.stopPropagation();
+                  goto_issue(id);
+                }
+              }
+              @keydown=${
+                /** @param {KeyboardEvent} e */ (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goto_issue(id);
+                  }
+                }
+              }
+              >${epic.title || '(no title)'}</span
+            >
+          </span>
+          <span class="epic-progress">
             <progress
               value=${Number(g.closed_children || 0)}
               max=${Math.max(1, Number(g.total_children || 0))}

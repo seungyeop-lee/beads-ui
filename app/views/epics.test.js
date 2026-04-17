@@ -393,7 +393,7 @@ describe('views/epics', () => {
     );
     expect(manual).toBeDefined();
     manual
-      ?.querySelector('.epic-header')
+      ?.querySelector('.epic-toggle-btn')
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     // Immediately after click, expect Loading…
@@ -426,6 +426,269 @@ describe('views/epics', () => {
     const d = issueStores4.snapshotFor('detail:UI-41');
     expect(d.length).toBe(1);
     expect(d[0]?.id).toBe('UI-41');
+  });
+
+  test('clicking epic title navigates to the epic detail', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const storesN = new Map();
+    const listenersN = new Set();
+    /** @param {string} id */
+    const getStoreN = (id) => {
+      let s = storesN.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        storesN.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listenersN)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStoresN = {
+      getStore: getStoreN,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStoreN(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listenersN.add(fn);
+        return () => listenersN.delete(fn);
+      }
+    };
+    const subscriptionsN = createSubscriptionStore(async () => {});
+    issueStoresN.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-50',
+          title: 'Clickable Epic',
+          issue_type: 'epic',
+          dependents: []
+        }
+      ]
+    });
+    /** @type {string[]} */
+    const navCalls = [];
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      (id) => navCalls.push(id),
+      subscriptionsN,
+      /** @type {any} */ (issueStoresN)
+    );
+    await view.load();
+    const titleEl = /** @type {HTMLElement|null} */ (
+      mount.querySelector('.epic-group[data-epic-id="UI-50"] .epic-title-text')
+    );
+    expect(titleEl).not.toBeNull();
+    titleEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(navCalls).toEqual(['UI-50']);
+    // Clicking the surrounding .epic-title flex container (outside the text)
+    // must not navigate — it is for toggling via header click.
+    const titleWrap = /** @type {HTMLElement|null} */ (
+      mount.querySelector('.epic-group[data-epic-id="UI-50"] .epic-title')
+    );
+    titleWrap?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Only the direct click on .epic-title-text above registered.
+    expect(navCalls).toEqual(['UI-50']);
+  });
+
+  test('clicking header bar background toggles expanded state (not navigate)', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const storesH = new Map();
+    const listenersH = new Set();
+    /** @param {string} id */
+    const getStoreH = (id) => {
+      let s = storesH.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        storesH.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listenersH)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStoresH = {
+      getStore: getStoreH,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStoreH(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listenersH.add(fn);
+        return () => listenersH.delete(fn);
+      }
+    };
+    const subscriptionsH = createSubscriptionStore(async () => {});
+    issueStoresH.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-70',
+          title: 'First',
+          issue_type: 'epic',
+          dependents: []
+        },
+        {
+          id: 'UI-71',
+          title: 'Bar Target',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-72' }]
+        }
+      ]
+    });
+    /** @type {string[]} */
+    const navCalls = [];
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      (id) => navCalls.push(id),
+      subscriptionsH,
+      /** @type {any} */ (issueStoresH)
+    );
+    await view.load();
+    const target = /** @type {HTMLElement|null} */ (
+      mount.querySelector('.epic-group[data-epic-id="UI-71"]')
+    );
+    const header = /** @type {HTMLElement|null} */ (
+      target?.querySelector('.epic-header')
+    );
+    expect(header).not.toBeNull();
+    expect(target?.querySelector('.epic-children')).toBeNull();
+    header?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(target?.querySelector('.epic-children')).not.toBeNull();
+    expect(
+      target?.querySelector('.epic-toggle-btn')?.getAttribute('aria-expanded')
+    ).toBe('true');
+    expect(navCalls.length).toBe(0);
+  });
+
+  test('toggle button toggles expanded state and aria-expanded', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const storesT = new Map();
+    const listenersT = new Set();
+    /** @param {string} id */
+    const getStoreT = (id) => {
+      let s = storesT.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        storesT.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listenersT)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStoresT = {
+      getStore: getStoreT,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStoreT(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listenersT.add(fn);
+        return () => listenersT.delete(fn);
+      }
+    };
+    const subscriptionsT = createSubscriptionStore(async () => {});
+    // Two epics: first auto-expands, second starts collapsed.
+    issueStoresT.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-60',
+          title: 'First',
+          issue_type: 'epic',
+          dependents: []
+        },
+        {
+          id: 'UI-61',
+          title: 'Target',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-62' }]
+        }
+      ]
+    });
+    /** @type {string[]} */
+    const navCalls = [];
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      (id) => navCalls.push(id),
+      subscriptionsT,
+      /** @type {any} */ (issueStoresT)
+    );
+    await view.load();
+    const target = /** @type {HTMLElement|null} */ (
+      mount.querySelector('.epic-group[data-epic-id="UI-61"]')
+    );
+    expect(target).not.toBeNull();
+    let toggleBtn = /** @type {HTMLElement|null} */ (
+      target?.querySelector('.epic-toggle-btn')
+    );
+    expect(toggleBtn?.getAttribute('aria-expanded')).toBe('false');
+    expect(target?.querySelector('.epic-children')).toBeNull();
+    // Click toggle → expanded
+    toggleBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    toggleBtn = /** @type {HTMLElement|null} */ (
+      target?.querySelector('.epic-toggle-btn')
+    );
+    expect(toggleBtn?.getAttribute('aria-expanded')).toBe('true');
+    expect(target?.querySelector('.epic-children')).not.toBeNull();
+    // Toggle click must not navigate.
+    expect(navCalls.length).toBe(0);
+    // Click toggle again → collapsed
+    toggleBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    toggleBtn = /** @type {HTMLElement|null} */ (
+      target?.querySelector('.epic-toggle-btn')
+    );
+    expect(toggleBtn?.getAttribute('aria-expanded')).toBe('false');
+    expect(target?.querySelector('.epic-children')).toBeNull();
   });
 
   test('clicking title navigates; pencil button enters edit mode', async () => {
