@@ -98,8 +98,8 @@ describe('issues view — store resets on spec change', () => {
     });
     await Promise.resolve();
 
-    // Switch to in_progress using dropdown checkbox
-    toggleFilter(0, 'In progress');
+    // Remove Open (default is ['open','in_progress']); switch to in_progress-only
+    toggleFilter(0, 'Open');
     await Promise.resolve();
 
     // Now deliver a snapshot for the new spec with a LOWER revision

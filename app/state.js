@@ -4,7 +4,7 @@
 import { debug } from './utils/logging.js';
 
 /**
- * @typedef {'all'|'open'|'in_progress'|'closed'|'ready'} StatusFilter
+ * @typedef {string[]} StatusFilter
  */
 
 /**
@@ -54,7 +54,7 @@ export function createStore(initial = {}) {
     selected_id: initial.selected_id ?? null,
     view: initial.view ?? 'issues',
     filters: {
-      status: initial.filters?.status ?? 'all',
+      status: initial.filters?.status ?? ['open', 'in_progress'],
       search: initial.filters?.search ?? '',
       type:
         typeof initial.filters?.type === 'string' ? initial.filters?.type : ''
