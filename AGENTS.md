@@ -6,6 +6,21 @@ Use MCP `beads` (bd) as our dependency‑aware issue tracker. The `bd` command
 reference is injected by the SessionStart hook; this file defines
 project-specific conventions.
 
+### Operating Mode
+
+This repository uses beads in **local-only mode**:
+
+- No Dolt remote is configured. Do **not** run `bd dolt pull` or `bd dolt push`.
+  The SessionStart hook's "Session Close Protocol" mentions `bd dolt pull`, but
+  it does not apply here.
+- Issue data such as `.beads/issues.jsonl` is excluded via `.gitignore` and is
+  not shared through git. Only minimal markers (e.g., `.beads/metadata.json`)
+  are tracked.
+- beads therefore functions solely as a single-machine, single-developer task
+  queue and cross-session memory.
+
+Update this section if a Dolt remote is added later.
+
 ### Issue Types
 
 - `bug` - Something broken that needs fixing
