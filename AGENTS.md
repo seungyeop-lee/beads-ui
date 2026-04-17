@@ -111,6 +111,33 @@ bd dep add <new-id> <current-id>      # new-id depends on current-id
 
 Then continue working on the current issue.
 
+#### Creating Epics with Child Tasks
+
+`bd epic status` only recognizes an epic when **children depend on the epic**
+(not the other way around). Adding the dependency as `epic → child` causes
+`bd epic status` to return an empty list.
+
+```
+# 1. Create the epic
+bd create --title="Epic title" --description="..." --type=epic
+
+# 2. Create child tasks
+bd create --title="Task A" --description="..." --type=task
+bd create --title="Task B" --description="..." --type=task
+
+# 3. Link: child → epic (parent-child)
+bd dep add <child-id> <epic-id> --type=parent-child
+```
+
+Use `--parent` to link at creation time:
+
+```
+bd create --title="Task A" --description="..." --type=task --parent=<epic-id>
+```
+
+**Direction rule:** `bd dep add A B` means "A depends on B", so for epics `A` is
+the child and `B` is the epic.
+
 ### Concurrency
 
 Only **one** issue may be `in_progress` per session. Multiple issues can be
