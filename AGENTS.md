@@ -40,7 +40,10 @@ Every file-modifying task, including trivial doc edits, follows these 9 steps:
 3. **In progress** — `bd update <id> --status=in_progress` immediately before
    touching any file.
 4. **Execute.**
-5. **Report** — summarize changes and request confirmation.
+5. **Report** — summarize changes and request confirmation. If the description
+   contains a verification section (e.g., `## 검증`), execute every item and
+   include the outcomes (evidence) here or in Notes (step 7); never announce
+   `완료` while any verification item is still outstanding.
 6. **Branch on response** — `완료` → step 7. Anything else is feedback; return
    to step 4 (status stays `in_progress`).
 7. **Notes** — `bd update <id> --notes="..."` for decisions, rationale, and
@@ -86,3 +89,6 @@ module, and unit-test conventions.
 Validation is enforced by lefthook (`lefthook.yml`) — the source of truth. Hooks
 install automatically via `pnpm install`; run `pnpm exec lefthook install` once
 after a fresh clone if they are missing.
+
+After changing UI sources under `app/`, run `pnpm build` to regenerate
+`app/main.bundle.js` — `pnpm all` does **not** build.
