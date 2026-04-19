@@ -74,8 +74,11 @@ digraph agent_workflow {
 8. **Comment** — `bd comments add <id> "<text>"` (positional text, **not**
    `--message` flag); include the actual commit hash and commit message for the
    commit from step 7.
-9. **Notes** — use `bd update <id> --notes="..."` only for durable context not
-   already captured in the diff, commit, or comment.
+9. **Notes** — use `bd update <id> --notes="..."` for durable context not
+   already captured in the diff, commit, or comment. **Required when step 6
+   feedback added scope beyond the original METHOD:** record each
+   feedback-driven addition before closing, e.g.
+   `피드백으로 추가: <항목>. 커밋: <hash>`.
 10. **Close** — `bd close <id> --reason="..."`.
 
 **Session signals:** only `승인` (step 1→3) and `완료` (step 6→7) carry workflow
