@@ -71,11 +71,12 @@ digraph agent_workflow {
    to step 4 (status stays `in_progress`).
 7. **Commit** — stage only files for this issue and commit. Never run
    `git push`.
-8. **Comment** — add an issue comment with the actual commit hash and commit
-   message for the commit from step 7.
+8. **Comment** — `bd comments add <id> "<text>"` (positional text, **not**
+   `--message` flag); include the actual commit hash and commit message for the
+   commit from step 7.
 9. **Notes** — use `bd update <id> --notes="..."` only for durable context not
    already captured in the diff, commit, or comment.
-10. **Close** — `bd close <id>`.
+10. **Close** — `bd close <id> --reason="..."`.
 
 **Session signals:** only `승인` (step 1→3) and `완료` (step 6→7) carry workflow
 meaning.
