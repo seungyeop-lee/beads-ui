@@ -4,13 +4,7 @@ describe('theme toggle', () => {
   test('sets dark data-theme and persists preference', async () => {
     document.body.innerHTML = `
       <header class="app-header">
-        <div class="header-left">
-          <div class="header-workspace">
-            <div class="workspace-picker workspace-picker--single">
-              <span class="workspace-picker__label">beads-ui</span>
-            </div>
-          </div>
-        </div>
+        <h1 class="app-title">beads-ui</h1>
         <div class="header-actions">
           <label class="theme-toggle">
             <span>Dark</span>
