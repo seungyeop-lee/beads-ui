@@ -81,8 +81,7 @@ digraph agent_workflow {
    - `피드백으로 추가: <항목>. 커밋: <hash>` — scope was added while METHOD
      itself stayed intact.
    - `결정 변경: <변경 내용>. 커밋: <hash>` — METHOD itself was revised
-     (decision reversal). Also update the issue's `### 고려한 대안` from
-     step 1.
+     (decision reversal). Also update the issue's `### 고려한 대안` from step 1.
 10. **Close** — `bd close <id> --reason="..."`.
 
 **Session signals:** only `승인` (step 1→3) and `완료` (step 6→7) carry workflow
@@ -95,9 +94,10 @@ For command examples, see [`docs/beads-commands.md`](docs/beads-commands.md).
 > **Overrides** the Auto-Sync and Session Completion sections below.
 
 Local-only: no Dolt remote. Do **not** run `bd dolt pull`/`bd dolt push` (the
-SessionStart hook's "Session Close Protocol" does not apply here).
-`.beads/issues.jsonl` is gitignored; only minimal markers (e.g.,
-`.beads/metadata.json`) are tracked. Update this section if a Dolt remote is
+SessionStart hook's "Session Close Protocol" does not apply here). The entire
+`.beads/` directory is gitignored except for `.beads/.gitkeep`, which is tracked
+as a marker. Fresh-clone setup steps live in
+[`docs/bd-setup.md`](docs/bd-setup.md). Update this section if a Dolt remote is
 added later.
 
 ### Language
@@ -123,8 +123,8 @@ added later.
     alongside the new one).
 
   Do not create the subsection just to fill in alternatives that would be
-  rejected by common sense — the absence of the subsection itself signals
-  "no alternatives were discussed."
+  rejected by common sense — the absence of the subsection itself signals "no
+  alternatives were discussed."
 
 ### Concurrency
 
@@ -147,17 +147,16 @@ approved together, but execute them sequentially.
 ### Shell Safety
 
 When invoking `bd` with narrative arguments (`--description`, `--notes`,
-`--reason`, `bd comments add` body, etc.), **wrap the value in single
-quotes** by default:
+`--reason`, `bd comments add` body, etc.), **wrap the value in single quotes**
+by default:
 
 ```bash
 bd close bdui-42 --reason='커밋 abc1234: `결정 변경` 규약 적용'
 ```
 
-Rationale: inside double quotes, the shell still expands `` ` ``, `$`, and
-`!`. Backtick-wrapped Korean text such as `` `피드백으로 추가:` `` is then
-treated as command substitution and silently truncated from the stored
-value.
+Rationale: inside double quotes, the shell still expands `` ` ``, `$`, and `!`.
+Backtick-wrapped Korean text such as `` `피드백으로 추가:` `` is then treated as
+command substitution and silently truncated from the stored value.
 
 Switch to a heredoc form **only when** the content itself contains a single
 quote:
