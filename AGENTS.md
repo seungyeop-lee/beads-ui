@@ -144,6 +144,31 @@ approved together, but execute them sequentially.
 - Never bypass git hooks (`--no-verify`, `LEFTHOOK=0`, or any equivalent
   flag/env). If a hook fails, fix the underlying issue and retry.
 
+### Shell Safety
+
+When invoking `bd` with narrative arguments (`--description`, `--notes`,
+`--reason`, `bd comments add` body, etc.), **wrap the value in single
+quotes** by default:
+
+```bash
+bd close bdui-42 --reason='커밋 abc1234: `결정 변경` 규약 적용'
+```
+
+Rationale: inside double quotes, the shell still expands `` ` ``, `$`, and
+`!`. Backtick-wrapped Korean text such as `` `피드백으로 추가:` `` is then
+treated as command substitution and silently truncated from the stored
+value.
+
+Switch to a heredoc form **only when** the content itself contains a single
+quote:
+
+```bash
+bd close bdui-42 --reason="$(cat <<'EOF'
+본문에 ' 가 포함된 경우만 이 형식을 사용.
+EOF
+)"
+```
+
 ### Setup Exceptions
 
 If a one-time setup prerequisite is missing (e.g., `issue_prefix` not
