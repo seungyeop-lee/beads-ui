@@ -10,4 +10,7 @@ app/main.bundle.js.map
 .dolt/
 *.db
 
+# pnpm pack output from install:global script
+/*.tgz
+
 .idea

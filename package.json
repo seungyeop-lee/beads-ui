@@ -31,7 +31,9 @@
     "version": "changes --commits --footer",
     "postversion": "git push --follow-tags && pnpm publish",
     "prepack": "pnpm build",
-    "postpack": "rm app/main.bundle.js app/main.bundle.js.map"
+    "postpack": "rm app/main.bundle.js app/main.bundle.js.map",
+    "install:global": "pnpm pack && pnpm add -g \"$PWD\"/seungyeop-lee-beads-ui-*.tgz; EXIT=$?; rm -f seungyeop-lee-beads-ui-*.tgz; exit $EXIT",
+    "uninstall:global": "pnpm remove -g @seungyeop-lee/beads-ui"
   },
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
