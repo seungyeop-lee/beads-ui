@@ -1,5 +1,88 @@
 # Changes
 
+## 0.14.0
+
+- [`988ba65`](https://github.com/seungyeop-lee/beads-ui/commit/988ba6551446316b9ca831fe3811fc4c6a8bfd21)
+  chore: add install:global and uninstall:global scripts, ignore .tgz
+    >
+    > - Add install:global script to pack and globally install via pnpm
+    > - Add uninstall:global script to remove global package
+    > - Ignore root-level *.tgz files from pnpm pack output
+    >
+- [`015f528`](https://github.com/seungyeop-lee/beads-ui/commit/015f52822675c2a73721b4ecb3238699ce63acdf)
+  chore(docs): drop BEADS INTEGRATION block and relocate essential refs
+    >
+    > - Remove the auto-generated BEADS INTEGRATION section from AGENTS.md; its
+    >   Workflow/Auto-Sync/Session Completion content duplicated or conflicted
+    >   with the project-specific sections already above it.
+    > - Merge Issue type and Priority metadata conventions into Issue Content.
+    > - Move lifecycle/hygiene commands (defer, supersede, stale, orphans, lint,
+    >   human, formula list, mol pour) into docs/beads-commands.md as a new
+    >   Lifecycle Commands section.
+    >
+- [`15685c3`](https://github.com/seungyeop-lee/beads-ui/commit/15685c3d89c4dea026d104293aeb3c30914b683a)
+  chore(beads): consolidate .beads/ gitignore and add fresh-clone setup guide
+    >
+    > - Untrack .beads/metadata.json (per-clone project_id UUID) and
+    >   .beads/.gitignore (keep bd-related rules in one place)
+    > - Track empty .beads/.gitkeep as "bd project" marker
+    > - Replace individual-file ignores with `.beads/` + `!.beads/.gitkeep`
+    >   in root .gitignore
+    > - Add docs/bd-setup.md documenting the shared-server bd init sequence
+    > - Update AGENTS.md Operating Mode to reference the new setup doc
+    >
+- [`4ec8833`](https://github.com/seungyeop-lee/beads-ui/commit/4ec88338d4050ffbd2f47837246632ef95a5ea0e)
+  docs(agents): add Shell Safety subsection for bd narrative argument quoting
+    >
+    > Wrap bd narrative arguments (--description, --notes, --reason, comment
+    > bodies, etc.) in single quotes by default so backtick-wrapped Korean text
+    > is not silently dropped by the shell's command substitution. Heredoc is
+    > documented as the fallback path when the content itself contains a single
+    > quote.
+    >
+- [`542faf8`](https://github.com/seungyeop-lee/beads-ui/commit/542faf8b862b8f50d6e1a1770649e3792baa2088)
+  docs(agents): split notes prefix and add conditional method alternatives
+    >
+    > Step 9 notes now distinguish `피드백으로 추가:` (scope added, METHOD intact)
+    > from `결정 변경:` (METHOD revised); the latter also requires updating the
+    > issue's `### 고려한 대안`. Issue Content gains a conditional
+    > `### 고려한 대안` subsection that is added only when concrete alternatives
+    > were compared, the user rejected an approach, or the step 6 feedback loop
+    > changed METHOD itself.
+    >
+- [`25269f9`](https://github.com/seungyeop-lee/beads-ui/commit/25269f91d628e80ba426d49ceda493d1425c0a74)
+  Revert "fix(header): simplify top-left brand area"
+    >
+    > This reverts commit 1243029ac2d321f63c0c1371a8e46e87006c6f50.
+    >
+- [`5a4c27e`](https://github.com/seungyeop-lee/beads-ui/commit/5a4c27e65994b8f67682864cea74978e10039aa6)
+  chore(beads): expand .gitignore for runtime artifacts and add Dolt config to metadata
+- [`bffc6e7`](https://github.com/seungyeop-lee/beads-ui/commit/bffc6e774cb70ba62d5ef533c33b3ac17d6b552f)
+  docs(agents): require notes entry for feedback-added scope
+    >
+    > Extend workflow step 9 to make notes mandatory when step 6 feedback
+    > expands the work beyond the original METHOD, with a short format
+    > example recording the feedback item and its commit hash.
+    >
+- [`89dc5bb`](https://github.com/seungyeop-lee/beads-ui/commit/89dc5bb8664ca5a2d315ee991037235d158c035f)
+  docs(agents): inline canonical bd syntax in workflow steps 8/10
+    >
+    > Add `bd comments add <id> "<text>"` with positional-text warning to step 8
+    > and `bd close <id> --reason="..."` to step 10 so the correct syntax is
+    > visible at the decision point rather than via indirect link.
+    >
+- [`f00330c`](https://github.com/seungyeop-lee/beads-ui/commit/f00330c404fed39d9817cc4c6c443cabe247c4d6)
+  docs(agents): restructure AGENTS.md and extract command examples
+    >
+    > Move workflow command examples to docs/beads-commands.md and
+    > reorganize AGENTS.md with project overview, dot graph workflow,
+    > and beads integration section.
+    >
+- [`e6abdfc`](https://github.com/seungyeop-lee/beads-ui/commit/e6abdfc3236a81ce61c528d1e91c15a7b4fe718c)
+  chore: add public access publishConfig to package.json
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-04-22._
+
 ## 0.13.0
 
 - [`15d2d69`](https://github.com/seungyeop-lee/beads-ui/commit/15d2d69ac5e7ea458302b04f719b1bc7c064f93b)
