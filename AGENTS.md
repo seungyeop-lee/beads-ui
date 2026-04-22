@@ -13,10 +13,35 @@ insufficient (e.g., `bd show --json` omits dependency type), compensate in the
 server/adaptation layer or accept the limitation — never block on upstream
 changes.
 
-## Working Conventions
+## Coding Standards
 
-The `bd` command reference is injected by the SessionStart hook; this section
-defines only project-specific conventions.
+See [`docs/coding-standards.md`](docs/coding-standards.md) for naming, JSDoc,
+module, and unit-test conventions.
+
+## Pre-Handoff Validation
+
+Validation is enforced by lefthook (`lefthook.yml`) — the source of truth. Hooks
+install automatically via `pnpm install`; run `pnpm exec lefthook install` once
+after a fresh clone if they are missing.
+
+After changing UI sources under `app/`, run `pnpm build` to regenerate
+`app/main.bundle.js` — `pnpm all` does **not** build.
+
+<!-- >>> beads-starter >>> -->
+
+## Beads Workflow
+
+This section defines project-specific beads workflow conventions. For command
+examples, see
+[`docs/beads-starter/beads-commands.md`](docs/beads-starter/beads-commands.md).
+
+### Initialization
+
+Before any workflow step below, verify `.beads/` exists at the repository root.
+If it does not, the repo has not been initialized yet — follow
+[`docs/beads-starter/bd-setup.md`](docs/beads-starter/bd-setup.md) end-to-end
+(install bd, run `bd init` with this project's flags, apply the `bd config`
+follow-ups), then resume.
 
 ### Agent Workflow
 
@@ -64,10 +89,10 @@ digraph agent_workflow {
    touching any file.
 4. **Execute.**
 5. **Report** — summarize changes and request confirmation. If the description
-   contains a verification section (e.g., `## 검증`), execute every item and
-   include the outcomes; never announce `완료` while any verification item is
-   still outstanding.
-6. **Branch on response** — `완료` → step 7. Anything else is feedback; return
+   contains a verification section (e.g., `## Verification`), execute every item
+   and include the outcomes; never announce `done` while any verification item
+   is still outstanding.
+6. **Branch on response** — `done` → step 7. Anything else is feedback; return
    to step 4 (status stays `in_progress`).
 7. **Commit** — stage only files for this issue and commit. Never run
    `git push`.
@@ -78,44 +103,31 @@ digraph agent_workflow {
    already captured in the diff, commit, or comment. **Required when step 6
    feedback modified the recorded decision**, using the matching prefix so the
    two cases stay separable later:
-   - `피드백으로 추가: <항목>. 커밋: <hash>` — scope was added while METHOD
+   - `Added via feedback: <item>. Commit: <hash>` — scope was added while METHOD
      itself stayed intact.
-   - `결정 변경: <변경 내용>. 커밋: <hash>` — METHOD itself was revised
-     (decision reversal). Also update the issue's `### 고려한 대안` from step 1.
+   - `Decision changed: <details>. Commit: <hash>` — METHOD itself was revised
+     (decision reversal). Also update the issue's `### Alternatives Considered`
+     from step 1.
 10. **Close** — `bd close <id> --reason="..."`.
 
-**Session signals:** only `승인` (step 1→3) and `완료` (step 6→7) carry workflow
-meaning.
-
-For command examples, see [`docs/beads-commands.md`](docs/beads-commands.md).
+**Session signals:** only `approved` (step 1→3) and `done` (step 6→7) carry
+workflow meaning.
 
 ### Operating Mode
 
-> **Overrides** the Auto-Sync and Session Completion sections below.
-
-Local-only: no Dolt remote. Do **not** run `bd dolt pull`/`bd dolt push` (the
-SessionStart hook's "Session Close Protocol" does not apply here). The entire
-`.beads/` directory is gitignored except for `.beads/.gitkeep`, which is tracked
-as a marker. Fresh-clone setup steps live in
-[`docs/bd-setup.md`](docs/bd-setup.md). Update this section if a Dolt remote is
-added later.
-
-### Language
-
-- Write all beads issue narrative fields (title, description, notes, design) in
-  **Korean**. Identifiers, commands, file paths, and code snippets stay in their
-  original form.
+Local-only shared-server (no Dolt remote). Do **not** run `bd dolt pull` /
+`bd dolt push`. The entire `.beads/` directory is gitignored.
 
 ### Issue Content
 
 - Every description must expose both **WHAT** and **METHOD** under clear
-  headings (e.g., `## 무엇을 (WHAT)`, `## 어떻게 (METHOD)`).
+  headings (e.g., `## WHAT`, `## METHOD`).
   - **WHAT** — the target problem/outcome (why this issue exists, what must
     change).
   - **METHOD** — the agreed approach. Implementation detail belongs in `notes`
     after the work is done (step 9).
-- Add a `### 고려한 대안` subsection under METHOD **only when** one of the
-  following triggers fired:
+- Add an `### Alternatives Considered` subsection under METHOD **only when** one
+  of the following triggers fired:
   - Two or more concrete implementations were actually compared during
     discussion.
   - The user rejected one approach and directed another.
@@ -125,6 +137,22 @@ added later.
   Do not create the subsection just to fill in alternatives that would be
   rejected by common sense — the absence of the subsection itself signals "no
   alternatives were discussed."
+
+- **Self-contained** — the description must let an executor who has not seen the
+  conversation start work without asking follow-up questions. Record every
+  constraint agreed in discussion (chosen approach, rejected options, scope
+  boundaries) in METHOD. Do not rely on session memory.
+- **Out of Scope** — when the boundary is non-trivial, add an `### Out of Scope`
+  subsection under METHOD listing what this issue explicitly does not cover
+  (related components deferred, files not to touch, features excluded).
+- **Verification required for file-modifying issues** — add a `## Verification`
+  section with concrete, checkable criteria (files that must exist or not exist,
+  behaviors that must hold). Step 5 of the Agent Workflow executes every item,
+  so the section must be unambiguous.
+- **Pre-creation self-check** — before `bd create`, re-read the description and
+  confirm a reader without conversation context could proceed. If any agreed
+  constraint is missing, or if unresolved choices would change implementation,
+  revise (or ask the user) before creating.
 
 - **Issue type** — `bug` (broken behavior) / `feature` (new functionality) /
   `task` (work item: tests, docs, refactor) / `epic` (large feature with
@@ -139,16 +167,13 @@ approved together, but execute them sequentially.
 
 ### Commit Rules
 
-> **Overrides** the Session Completion section below regarding `git push`.
-
 - Stage only files belonging to the closed issue; report any unrelated
   working-tree changes to the user instead of sweeping them in.
 - Follow the existing commit message convention: `chore:`, `feat(scope):`,
   `fix:`, etc.
 - Never run `git push`.
-- Never update `CHANGES.md`.
-- Never bypass git hooks (`--no-verify`, `LEFTHOOK=0`, or any equivalent
-  flag/env). If a hook fails, fix the underlying issue and retry.
+- Never bypass git hooks (`--no-verify` or any equivalent flag/env). If a hook
+  fails, fix the underlying issue and retry.
 
 ### Shell Safety
 
@@ -157,11 +182,11 @@ When invoking `bd` with narrative arguments (`--description`, `--notes`,
 by default:
 
 ```bash
-bd close bdui-42 --reason='커밋 abc1234: `결정 변경` 규약 적용'
+bd close bdui-42 --reason='Commit abc1234: applied `Decision changed` convention'
 ```
 
 Rationale: inside double quotes, the shell still expands `` ` ``, `$`, and `!`.
-Backtick-wrapped Korean text such as `` `피드백으로 추가:` `` is then treated as
+Backtick-wrapped text such as `` `Added via feedback:` `` is then treated as
 command substitution and silently truncated from the stored value.
 
 Switch to a heredoc form **only when** the content itself contains a single
@@ -169,7 +194,7 @@ quote:
 
 ```bash
 bd close bdui-42 --reason="$(cat <<'EOF'
-본문에 ' 가 포함된 경우만 이 형식을 사용.
+Use this form only when the body contains a single quote.
 EOF
 )"
 ```
@@ -179,16 +204,4 @@ EOF
 If a one-time setup prerequisite is missing (e.g., `issue_prefix` not
 configured), ask the user before configuring it, then resume the normal flow.
 
-## Coding Standards
-
-See [`docs/coding-standards.md`](docs/coding-standards.md) for naming, JSDoc,
-module, and unit-test conventions.
-
-## Pre-Handoff Validation
-
-Validation is enforced by lefthook (`lefthook.yml`) — the source of truth. Hooks
-install automatically via `pnpm install`; run `pnpm exec lefthook install` once
-after a fresh clone if they are missing.
-
-After changing UI sources under `app/`, run `pnpm build` to regenerate
-`app/main.bundle.js` — `pnpm all` does **not** build.
+<!-- <<< beads-starter <<< -->

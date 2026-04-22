@@ -1,3 +1,5 @@
+<!-- >>> beads-starter >>> -->
+
 # Beads Command Examples
 
 `bd` command examples for common workflows.
@@ -7,7 +9,7 @@
 ```
 bd ready                              # List unblocked issues
 bd show <id>                          # Review issue details
-# After user says "승인":
+# After user says "approved":
 bd update <id> --status=in_progress   # Transition before touching any file
 ```
 
@@ -80,3 +82,4 @@ Adjunct commands outside the main 10-step flow.
 - `bd lint` — check issue hygiene.
 - `bd human <id>` — flag an issue as requiring a human decision.
 - `bd formula list` / `bd mol pour <name>` — structured workflow templates.
+<!-- <<< beads-starter <<< -->

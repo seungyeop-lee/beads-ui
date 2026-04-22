@@ -3,8 +3,6 @@ tsconfig.tsbuildinfo
 app/main.bundle.js
 app/main.bundle.js.map
 .DS_Store
-.beads/
-!.beads/.gitkeep
 
 # Dolt database files (added by bd init)
 .dolt/
@@ -14,3 +12,9 @@ app/main.bundle.js.map
 /*.tgz
 
 .idea
+
+# >>> beads-starter >>>
+.beads/
+.dolt/
+*.db
+# <<< beads-starter <<<
