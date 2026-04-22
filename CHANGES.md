@@ -1,5 +1,27 @@
 # Changes
 
+## 0.14.1
+
+- [`5bcfc72`](https://github.com/seungyeop-lee/beads-ui/commit/5bcfc72e719397b4c7748c961cc548645660397c)
+  chore(beads): adopt beads-starter preset, drop duplicate workflow docs
+- [`45c5d16`](https://github.com/seungyeop-lee/beads-ui/commit/45c5d163fcd9a59cea4733e8b85ac7a35615cdb6)
+  fix(views/list): group by status so closed always sorts by closed_at desc
+    >
+    > Previously `cmpClosedDesc` only applied when the status filter was exactly
+    > `[closed]`. With any other combination (e.g. Open + In progress + Closed,
+    > or no filter) the whole list fell back to priority+created_at asc, placing
+    > the oldest-closed item on top of the closed group.
+    >
+    > Split filtered items by status and sort each group independently:
+    > open/in_progress by cmpPriorityThenCreated, closed by cmpClosedDesc, then
+    > concat open → in_progress → closed. The `ready` filter is exclusive and
+    > contains no closed items, so it keeps the single-sort path.
+    >
+    > Refs: bdui-9vz
+    >
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-04-22._
+
 ## 0.14.0
 
 - [`988ba65`](https://github.com/seungyeop-lee/beads-ui/commit/988ba6551446316b9ca831fe3811fc4c6a8bfd21)
