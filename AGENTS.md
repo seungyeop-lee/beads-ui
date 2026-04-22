@@ -76,9 +76,13 @@ digraph agent_workflow {
    commit from step 7.
 9. **Notes** — use `bd update <id> --notes="..."` for durable context not
    already captured in the diff, commit, or comment. **Required when step 6
-   feedback added scope beyond the original METHOD:** record each
-   feedback-driven addition before closing, e.g.
-   `피드백으로 추가: <항목>. 커밋: <hash>`.
+   feedback modified the recorded decision**, using the matching prefix so the
+   two cases stay separable later:
+   - `피드백으로 추가: <항목>. 커밋: <hash>` — scope was added while METHOD
+     itself stayed intact.
+   - `결정 변경: <변경 내용>. 커밋: <hash>` — METHOD itself was revised
+     (decision reversal). Also update the issue's `### 고려한 대안` from
+     step 1.
 10. **Close** — `bd close <id> --reason="..."`.
 
 **Session signals:** only `승인` (step 1→3) and `완료` (step 6→7) carry workflow
@@ -110,6 +114,17 @@ added later.
     change).
   - **METHOD** — the agreed approach. Implementation detail belongs in `notes`
     after the work is done (step 9).
+- Add a `### 고려한 대안` subsection under METHOD **only when** one of the
+  following triggers fired:
+  - Two or more concrete implementations were actually compared during
+    discussion.
+  - The user rejected one approach and directed another.
+  - The step 6 feedback loop changed METHOD itself (preserve the prior METHOD
+    alongside the new one).
+
+  Do not create the subsection just to fill in alternatives that would be
+  rejected by common sense — the absence of the subsection itself signals
+  "no alternatives were discussed."
 
 ### Concurrency
 
