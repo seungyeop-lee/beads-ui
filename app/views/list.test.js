@@ -712,6 +712,87 @@ describe('views/list', () => {
     expect(rows).toEqual(['UI-1', 'UI-2']);
   });
 
+  test('groups by status (open → in_progress → closed) with per-group sort', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issues = [
+      {
+        id: 'UI-C1',
+        title: 'closed old',
+        status: 'closed',
+        priority: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        closed_at: '2026-01-10T00:00:00Z'
+      },
+      {
+        id: 'UI-O1',
+        title: 'open low prio',
+        status: 'open',
+        priority: 2,
+        created_at: '2026-01-01T00:00:00Z'
+      },
+      {
+        id: 'UI-C2',
+        title: 'closed newest',
+        status: 'closed',
+        priority: 3,
+        created_at: '2026-01-05T00:00:00Z',
+        closed_at: '2026-01-20T00:00:00Z'
+      },
+      {
+        id: 'UI-IP1',
+        title: 'in progress',
+        status: 'in_progress',
+        priority: 2,
+        created_at: '2026-01-01T00:00:00Z'
+      },
+      {
+        id: 'UI-O2',
+        title: 'open high prio',
+        status: 'open',
+        priority: 1,
+        created_at: '2026-01-02T00:00:00Z'
+      },
+      {
+        id: 'UI-C3',
+        title: 'closed mid',
+        status: 'closed',
+        priority: 2,
+        created_at: '2026-01-03T00:00:00Z',
+        closed_at: '2026-01-15T00:00:00Z'
+      }
+    ];
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    // Any filter: open (prio asc, created asc) → in_progress → closed (closed_at desc)
+    const rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
+      (el) => el.getAttribute('data-issue-id') || ''
+    );
+    expect(rows).toEqual([
+      'UI-O2',
+      'UI-O1',
+      'UI-IP1',
+      'UI-C2',
+      'UI-C3',
+      'UI-C1'
+    ]);
+  });
+
   test('deselecting all checkboxes shows all issues', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));

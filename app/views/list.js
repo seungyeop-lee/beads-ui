@@ -1,6 +1,6 @@
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
-import { cmpClosedDesc } from '../data/sort.js';
+import { cmpClosedDesc, cmpPriorityThenCreated } from '../data/sort.js';
 import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
@@ -234,9 +234,31 @@ export function createListView(
         type_filters.includes(String(it.issue_type || ''))
       );
     }
-    // Sorting: closed list is a special case → sort by closed_at desc only
-    if (status_filters.length === 1 && status_filters[0] === 'closed') {
-      filtered = filtered.slice().sort(cmpClosedDesc);
+    // Sorting: split by status, sort per group, then concat open → in_progress → closed.
+    // `ready` is an exclusive filter with only open (unblocked) items — skip grouping.
+    if (status_filters.length === 1 && status_filters[0] === 'ready') {
+      filtered = filtered.slice().sort(cmpPriorityThenCreated);
+    } else {
+      /** @type {Issue[]} */
+      const open_items = [];
+      /** @type {Issue[]} */
+      const in_progress_items = [];
+      /** @type {Issue[]} */
+      const closed_items = [];
+      for (const it of filtered) {
+        const s = String(it.status || '');
+        if (s === 'closed') {
+          closed_items.push(it);
+        } else if (s === 'in_progress') {
+          in_progress_items.push(it);
+        } else {
+          open_items.push(it);
+        }
+      }
+      open_items.sort(cmpPriorityThenCreated);
+      in_progress_items.sort(cmpPriorityThenCreated);
+      closed_items.sort(cmpClosedDesc);
+      filtered = [...open_items, ...in_progress_items, ...closed_items];
     }
 
     return html`
