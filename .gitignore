@@ -12,9 +12,3 @@ app/main.bundle.js.map
 /*.tgz
 
 .idea
-
-# >>> beads-starter >>>
-.beads/
-.dolt/
-*.db
-# <<< beads-starter <<<
