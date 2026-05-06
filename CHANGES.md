@@ -1,5 +1,18 @@
 # Changes
 
+## 0.15.0
+
+- [`cedbc9f`](https://github.com/seungyeop-lee/beads-ui/commit/cedbc9f27a37094457493524677752ccea3cf191)
+  fix(views): widen issue ID columns
+- [`56211b2`](https://github.com/seungyeop-lee/beads-ui/commit/56211b2180739201233fac01ed3c483d3532273b)
+  chore(app): add favicon
+- [`df5cb63`](https://github.com/seungyeop-lee/beads-ui/commit/df5cb63a041c93079b18480f4f418c5138e62936)
+  chore: bump pnpm to 10.33.2
+- [`b0d61ff`](https://github.com/seungyeop-lee/beads-ui/commit/b0d61ffe05a6645171c8f44e9fe6637d442c1d25)
+  chore(beads): remove beads-starter workflow and setup docs
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-05-06._
+
 ## 0.14.1
 
 - [`5bcfc72`](https://github.com/seungyeop-lee/beads-ui/commit/5bcfc72e719397b4c7748c961cc548645660397c)
