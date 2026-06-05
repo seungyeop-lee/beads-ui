@@ -213,6 +213,127 @@ describe('list adapters for subscription types', () => {
     }
   });
 
+  test('issue-detail attaches comments fetched via bd comments', async () => {
+    const rj = /** @type {import('vitest').Mock} */ (runBdJson);
+    rj.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: [
+        {
+          id: 'UI-1',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          comment_count: 1
+        }
+      ]
+    });
+    const comments = [
+      {
+        id: 'c-1',
+        issue_id: 'UI-1',
+        author: 'alice',
+        text: 'First comment',
+        created_at: '2024-01-02T00:00:00.000Z'
+      }
+    ];
+    rj.mockResolvedValueOnce({ code: 0, stdoutJson: comments });
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'UI-1' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.items[0].comments).toEqual(comments);
+    }
+    expect(rj).toHaveBeenCalledWith(['comments', 'UI-1', '--json'], {
+      cwd: undefined
+    });
+  });
+
+  test('issue-detail skips comments fetch when comment_count is 0', async () => {
+    const rj = /** @type {import('vitest').Mock} */ (runBdJson);
+    rj.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: [
+        {
+          id: 'UI-1',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          comment_count: 0
+        }
+      ]
+    });
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'UI-1' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.items[0].comments).toEqual([]);
+    }
+    expect(rj).toHaveBeenCalledTimes(1);
+  });
+
+  test('issue-detail keeps inline comments from bd show output', async () => {
+    const rj = /** @type {import('vitest').Mock} */ (runBdJson);
+    const inline = [
+      {
+        id: 'c-1',
+        issue_id: 'UI-1',
+        author: 'alice',
+        text: 'Inline comment',
+        created_at: '2024-01-02T00:00:00.000Z'
+      }
+    ];
+    rj.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: [
+        {
+          id: 'UI-1',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          comments: inline
+        }
+      ]
+    });
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'UI-1' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.items[0].comments).toEqual(inline);
+    }
+    expect(rj).toHaveBeenCalledTimes(1);
+  });
+
+  test('issue-detail leaves comments absent when comments fetch fails', async () => {
+    const rj = /** @type {import('vitest').Mock} */ (runBdJson);
+    rj.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: [
+        {
+          id: 'UI-1',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          comment_count: 2
+        }
+      ]
+    });
+    rj.mockResolvedValueOnce({ code: 1, stderr: 'boom' });
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'UI-1' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.items[0].comments).toBeUndefined();
+    }
+  });
+
   test('fetchListForSubscription surfaces bd error', async () => {
     /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
       code: 2,

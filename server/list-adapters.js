@@ -225,6 +225,9 @@ export async function fetchListForSubscription(spec, options = {}) {
     }
 
     const items = normalizeIssueList(raw);
+    if (String(spec.type) === 'issue-detail') {
+      await attachComments(items, options);
+    }
     return { ok: true, items };
   } catch (err) {
     log('bd invocation failed for %o (args=%o): %o', spec, args, err);
@@ -236,6 +239,34 @@ export async function fetchListForSubscription(spec, options = {}) {
           (err && /** @type {any} */ (err).message) || 'bd invocation failed'
       }
     };
+  }
+}
+
+/**
+ * Attach comments to issue-detail items. Recent bd releases omit the
+ * `comments` array from `bd show --json` (only `comment_count` remains), so
+ * the detail push must fetch them separately via `bd comments <id> --json`.
+ * On fetch failure `comments` stays absent so the client fallback can retry.
+ *
+ * @param {Array<{ id: string } & Record<string, unknown>>} items
+ * @param {{ cwd?: string }} [options]
+ * @returns {Promise<void>}
+ */
+async function attachComments(items, options = {}) {
+  for (const it of items) {
+    if (Array.isArray(it.comments)) {
+      continue;
+    }
+    if (it.comment_count === 0) {
+      it.comments = [];
+      continue;
+    }
+    const res = await runBdJson(['comments', it.id, '--json'], {
+      cwd: options.cwd
+    });
+    if (res.code === 0 && Array.isArray(res.stdoutJson)) {
+      it.comments = res.stdoutJson;
+    }
   }
 }
 

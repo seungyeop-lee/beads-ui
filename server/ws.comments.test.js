@@ -151,12 +151,12 @@ describe('add-comment handler', () => {
     expect(reply.ok).toBe(true);
     expect(reply.payload).toEqual(updatedComments);
 
-    // Verify bd was called with correct args including --author
+    // bd 1.x removed --author; author attribution uses the global --actor flag
     expect(rb).toHaveBeenCalledWith([
       'comment',
       'UI-1',
       'New comment',
-      '--author',
+      '--actor',
       'Test User'
     ]);
   });
@@ -189,7 +189,7 @@ describe('add-comment handler', () => {
     const reply = JSON.parse(ws.sent[0]);
     expect(reply.ok).toBe(true);
 
-    // Verify bd was called without --author
+    // Verify bd was called without --actor
     expect(rb).toHaveBeenCalledWith(['comment', 'UI-1', 'Anonymous comment']);
   });
 

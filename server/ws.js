@@ -1197,11 +1197,12 @@ export async function handleMessage(ws, data) {
       return;
     }
 
-    // Get git user name for author attribution
+    // Get git user name for author attribution. bd 1.x removed the
+    // `--author` flag; the global `--actor` flag sets the comment author.
     const author = await getGitUserName();
     const args = ['comment', id, text.trim()];
     if (author) {
-      args.push('--author', author);
+      args.push('--actor', author);
     }
 
     const res = await runBd(args);
