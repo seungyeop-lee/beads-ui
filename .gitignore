@@ -12,3 +12,6 @@ app/main.bundle.js.map
 /*.tgz
 
 .idea
+
+# CodeGraph local index (machine-local runtime data)
+.codegraph/
