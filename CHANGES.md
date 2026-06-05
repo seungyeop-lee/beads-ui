@@ -1,5 +1,51 @@
 # Changes
 
+## 0.16.0
+
+- [`88e5ed5`](https://github.com/seungyeop-lee/beads-ui/commit/88e5ed5d18eb6dea75c59a320d899d1f4103de91)
+  chore: move pnpm settings to pnpm-workspace.yaml
+    >
+    > pnpm 11 no longer reads the "pnpm" field in package.json and warned on
+    > every command. Move the build-script allowlist to pnpm-workspace.yaml
+    > using the new allowBuilds format (lefthook allowed, esbuild denied — it
+    > ships platform binaries via optionalDependencies).
+    >
+- [`d9de748`](https://github.com/seungyeop-lee/beads-ui/commit/d9de74810e95e66542e5e46ff25d6a55a302a786)
+  fix: drop postpack cleanup that breaks pnpm 11 pack/publish
+    >
+    > pnpm 11 stats the packed files after running postpack to print the
+    > tarball report. The postpack `rm` deleted the freshly built bundle
+    > first, so `pnpm pack` and `pnpm publish` exited non-zero even though
+    > the tarball itself was valid — breaking install:global and the
+    > postversion publish step.
+    >
+    > The bundle files are gitignored, so leaving them in the working tree
+    > is harmless and prepack rebuilds them on every pack anyway.
+    >
+- [`045dcbf`](https://github.com/seungyeop-lee/beads-ui/commit/045dcbfa367488400a855c285f6cc0effb26f14e)
+  fix(server): restore issue comments with bd 1.x
+    >
+    > Recent bd releases dropped the `comments` array from `bd show --json`
+    > (only `comment_count` remains), so detail pushes carried no comments and
+    > the detail view always showed "No comments yet". The client-side
+    > get-comments fallback never fired because the detail store snapshot is
+    > not available when the view loads.
+    >
+    > Compensate in the adaptation layer: when fetching an issue-detail
+    > subscription, fetch comments via `bd comments <id> --json` and attach
+    > them to the pushed item. Skip the extra call when `comment_count` is 0
+    > or comments are already inline (older bd).
+    >
+    > Also replace the removed `bd comment --author` flag with the global
+    > `--actor` flag so adding comments from the UI works again.
+    >
+- [`f727a00`](https://github.com/seungyeop-lee/beads-ui/commit/f727a002eb17557ad5f0c56628e0eb19a7787263)
+  chore: add codegraph and MCP server configuration
+- [`4204073`](https://github.com/seungyeop-lee/beads-ui/commit/42040737759f90d26b8d123df4d59794e038f37e)
+  chore: bump pnpm to 11.5.2
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-06-05._
+
 ## 0.15.0
 
 - [`cedbc9f`](https://github.com/seungyeop-lee/beads-ui/commit/cedbc9f27a37094457493524677752ccea3cf191)
