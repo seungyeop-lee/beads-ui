@@ -40,6 +40,18 @@ bdui start --open
 
 See `bdui --help` for options.
 
+### Upgrade
+
+Request the latest version explicitly. While the package is on `0.x`, the
+`^0.x.y` range saved by a plain install pins the minor version, so re-running
+the install command above keeps the old version:
+
+```sh
+npm i -g @seungyeop-lee/beads-ui@latest
+# Or with pnpm:
+# pnpm add -g @seungyeop-lee/beads-ui@latest
+```
+
 ## Screenshots
 
 **Issues**
