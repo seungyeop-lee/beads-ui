@@ -1,5 +1,31 @@
 # Changes
 
+## 0.16.1
+
+- [`045576d`](https://github.com/seungyeop-lee/beads-ui/commit/045576dba8602340e71f43d8ad6d3fb182753970)
+  chore: improve npm description and keywords for discoverability
+    >
+    > Align package.json metadata with the GitHub repo description and
+    > topics — front-load the terms people actually search for (bd, issue
+    > tracker, AI coding agents, kanban) so npm search picks them up.
+    >
+- [`2d8fe89`](https://github.com/seungyeop-lee/beads-ui/commit/2d8fe891fd54dbfd9426dfdfd3b1cf35bb8bf38f)
+  chore: gitignore the .codegraph directory
+    >
+    > The .gitignore that codegraph generates inside .codegraph/ misses
+    > daemon.pid, so it showed up as untracked. Ignore the whole directory at
+    > the root — it is machine-local index data.
+    >
+- [`0dabcb2`](https://github.com/seungyeop-lee/beads-ui/commit/0dabcb2b66d6e9086a389e429c9116e2925738ae)
+  docs: add upgrade instructions to README
+    >
+    > A plain `add -g` saves a `^0.x.y` range, which pins the minor version
+    > while the package is pre-1.0 — re-running the install command keeps the
+    > old version. Document `@latest` as the upgrade path.
+    >
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-06-06._
+
 ## 0.16.0
 
 - [`88e5ed5`](https://github.com/seungyeop-lee/beads-ui/commit/88e5ed5d18eb6dea75c59a320d899d1f4103de91)
