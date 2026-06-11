@@ -15,3 +15,7 @@ app/main.bundle.js.map
 
 # CodeGraph local index (machine-local runtime data)
 .codegraph/
+
+# Beads / Dolt files (added by bd init)
+.beads-credential-key
+.beads/proxieddb/
