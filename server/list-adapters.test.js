@@ -5,7 +5,15 @@ import {
   mapSubscriptionToBdArgs
 } from './list-adapters.js';
 
-vi.mock('./bd.js', () => ({ runBdJson: vi.fn() }));
+vi.mock('./bd.js', () => ({
+  runBdJson: vi.fn(),
+  showIssueArgs: /** @param {string} id */ (id) => [
+    'show',
+    id,
+    '--json',
+    '--include-dependents'
+  ]
+}));
 
 describe('list adapters for subscription types', () => {
   beforeEach(() => {
