@@ -16,6 +16,9 @@ app/main.bundle.js.map
 # CodeGraph local index (machine-local runtime data)
 .codegraph/
 
+# zvec-grep daemon runtime state (machine-local)
+.zvec-grep/
+
 # Beads / Dolt files (added by bd init)
 .beads-credential-key
 .beads/proxieddb/
