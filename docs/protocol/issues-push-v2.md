@@ -167,6 +167,12 @@ Detail view
   `detail:UI-1`. The server returns a one‑element list for `snapshot` and
   `upsert` events.
 
+Epic children
+
+- Epic expansion uses a child-list subscription, e.g.
+  `{ type: 'epic-children', params: { id: 'UI-1' } }` under a client id like
+  `children:UI-1`. The server returns the flat `bd children <id> --json` list.
+
 ## Rollout and Compatibility
 
 - Breaking change: no flags and no compatibility layer with the legacy

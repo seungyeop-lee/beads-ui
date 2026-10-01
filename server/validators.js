@@ -18,7 +18,8 @@ const SUBSCRIPTION_TYPES = new Set([
   'in-progress-issues',
   'closed-issues',
   'filtered-issues',
-  'issue-detail'
+  'issue-detail',
+  'epic-children'
 ]);
 
 /**
@@ -81,7 +82,7 @@ export function validateSubscribeListPayload(payload) {
   }
 
   // Per-type param schemas
-  if (type === 'issue-detail') {
+  if (type === 'issue-detail' || type === 'epic-children') {
     const id = String(params?.id ?? '').trim();
     if (id.length === 0) {
       return {

@@ -12,8 +12,7 @@ import { createIssueRowRenderer } from './issue-row.js';
  * Epics view (push-only):
  * - Derives epic groups from the local issues store (no RPC reads).
  * - Subscribes to `tab:epics` for top-level membership.
- * - On expand, subscribes to `detail:{id}` (issue-detail) for the epic.
- * - Renders children from the epic detail's `dependents` list.
+ * - On expand, subscribes to `children:{id}` (epic-children) for child rows.
  * - Provides inline edits via mutations; UI re-renders on push.
  *
  * @param {HTMLElement} mount_element
@@ -195,22 +194,22 @@ export function createEpicsView(
       expanded.add(epic_id);
       loading.add(epic_id);
       doRender();
-      // Subscribe to epic detail; children are rendered from `dependents`
+      const client_id = `children:${epic_id}`;
       if (subscriptions && typeof subscriptions.subscribeList === 'function') {
         try {
           // Register store first to avoid dropping the initial snapshot
           try {
             if (issue_stores && /** @type {any} */ (issue_stores).register) {
-              /** @type {any} */ (issue_stores).register(`detail:${epic_id}`, {
-                type: 'issue-detail',
+              /** @type {any} */ (issue_stores).register(client_id, {
+                type: 'epic-children',
                 params: { id: epic_id }
               });
             }
           } catch {
             // ignore
           }
-          const u = await subscriptions.subscribeList(`detail:${epic_id}`, {
-            type: 'issue-detail',
+          const u = await subscriptions.subscribeList(client_id, {
+            type: 'epic-children',
             params: { id: epic_id }
           });
           epic_unsubs.set(epic_id, u);
@@ -235,7 +234,7 @@ export function createEpicsView(
         epic_unsubs.delete(epic_id);
         try {
           if (issue_stores && /** @type {any} */ (issue_stores).unregister) {
-            /** @type {any} */ (issue_stores).unregister(`detail:${epic_id}`);
+            /** @type {any} */ (issue_stores).unregister(`children:${epic_id}`);
           }
         } catch {
           // ignore
@@ -260,29 +259,9 @@ export function createEpicsView(
     );
     const next_groups = [];
     for (const epic of sorted_epics) {
-      const dependents = Array.isArray(/** @type {any} */ (epic).dependents)
-        ? /** @type {any[]} */ (/** @type {any} */ (epic).dependents)
-        : [];
-      // Prefer explicit counters when provided by server; otherwise derive
-      const has_total = Number.isFinite(
-        /** @type {any} */ (epic).total_children
-      );
-      const has_closed = Number.isFinite(
-        /** @type {any} */ (epic).closed_children
-      );
-      const total = has_total
-        ? Number(/** @type {any} */ (epic).total_children) || 0
-        : dependents.length;
-      let closed = has_closed
-        ? Number(/** @type {any} */ (epic).closed_children) || 0
-        : 0;
-      if (!has_closed) {
-        for (const d of dependents) {
-          if (String(d.status || '') === 'closed') {
-            closed++;
-          }
-        }
-      }
+      // Child counters come from the server flatten of `bd epic status`.
+      const total = Number(/** @type {any} */ (epic).total_children) || 0;
+      const closed = Number(/** @type {any} */ (epic).closed_children) || 0;
       next_groups.push({
         epic,
         total_children: total,

@@ -370,6 +370,81 @@ describe('ws list subscriptions', () => {
     expect(reply && reply.error && reply.error.code).toBe('bad_request');
   });
 
+  test('subscribe-list accepts epic-children with id and publishes snapshot', async () => {
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'sub-children-1',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: {
+            id: 'children:UI-1',
+            type: 'epic-children',
+            params: { id: 'UI-1' }
+          }
+        })
+      )
+    );
+
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    expect(reply && reply.ok).toBe(true);
+    expect(reply && reply.type).toBe('subscribe-list');
+
+    const snapshot_envelope = sock.sent
+      .map((m) => {
+        try {
+          return JSON.parse(m);
+        } catch {
+          return null;
+        }
+      })
+      .find((o) => o && o.type === 'snapshot');
+    expect(!!snapshot_envelope).toBe(true);
+    expect(snapshot_envelope.payload && snapshot_envelope.payload.id).toBe(
+      'children:UI-1'
+    );
+    expect(Array.isArray(snapshot_envelope.payload.issues)).toBe(true);
+    expect(snapshot_envelope.payload.issues.length).toBeGreaterThan(0);
+  });
+
+  test('subscribe-list epic-children enforces id', async () => {
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'bad-children',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: { id: 'children:UI-X', type: 'epic-children' }
+        })
+      )
+    );
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    expect(reply && reply.ok).toBe(false);
+    expect(reply && reply.error && reply.error.code).toBe('bad_request');
+  });
+
   test('subscribe-list closed-issues validates since param', async () => {
     const sock = {
       sent: /** @type {string[]} */ ([]),

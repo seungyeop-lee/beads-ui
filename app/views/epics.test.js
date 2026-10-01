@@ -44,7 +44,11 @@ describe('views/epics', () => {
         return () => listeners.delete(fn);
       }
     };
-    const subscriptions = createSubscriptionStore(async () => {});
+    const sent_subscriptions =
+      /** @type {Array<{ type: string, payload: any }>} */ ([]);
+    const subscriptions = createSubscriptionStore(async (type, payload) => {
+      sent_subscriptions.push({ type, payload });
+    });
     // Seed epics list snapshot
     issueStores.getStore('tab:epics').applyPush({
       type: 'snapshot',
@@ -55,7 +59,8 @@ describe('views/epics', () => {
           id: 'UI-1',
           title: 'Epic One',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-2' }, { id: 'UI-3' }]
+          total_children: 2,
+          closed_children: 0
         }
       ]
     });
@@ -69,40 +74,42 @@ describe('views/epics', () => {
       /** @type {any} */ (issueStores)
     );
     await view.load();
-    // Register epic detail and push snapshot with dependents
-    issueStores.getStore('detail:UI-1');
-    issueStores.getStore('detail:UI-1').applyPush({
+    expect(sent_subscriptions).toContainEqual({
+      type: 'subscribe-list',
+      payload: {
+        id: 'children:UI-1',
+        type: 'epic-children',
+        params: { id: 'UI-1' }
+      }
+    });
+    // Register epic children and push snapshot
+    issueStores.getStore('children:UI-1');
+    issueStores.getStore('children:UI-1').applyPush({
       type: 'snapshot',
-      id: 'detail:UI-1',
+      id: 'children:UI-1',
       revision: 1,
       issues: [
         {
-          id: 'UI-1',
-          title: 'Epic One',
-          issue_type: 'epic',
-          dependents: [
-            {
-              id: 'UI-2',
-              title: 'Alpha',
-              status: 'open',
-              priority: 1,
-              issue_type: 'task'
-            },
-            {
-              id: 'UI-3',
-              title: 'Beta',
-              status: 'closed',
-              priority: 2,
-              issue_type: 'task'
-            }
-          ]
+          id: 'UI-2',
+          title: 'Alpha',
+          status: 'open',
+          priority: 1,
+          issue_type: 'task'
+        },
+        {
+          id: 'UI-3',
+          title: 'Beta',
+          status: 'closed',
+          priority: 2,
+          issue_type: 'task'
         }
       ]
     });
     await view.load();
     const header = mount.querySelector('.epic-header');
     expect(header).not.toBeNull();
-    // After expansion, only non-closed child should be present
+    // After expansion both children render as rows (closed included);
+    // priority asc puts UI-2 first.
     const rows = mount.querySelectorAll('tr.epic-row');
     expect(rows.length).toBe(2);
     rows[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -159,7 +166,8 @@ describe('views/epics', () => {
           id: 'UI-10',
           title: 'Epic Sort',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-11' }, { id: 'UI-12' }, { id: 'UI-13' }]
+          total_children: 3,
+          closed_children: 0
         }
       ]
     });
@@ -171,46 +179,39 @@ describe('views/epics', () => {
       /** @type {any} */ (issueStores2)
     );
     await view.load();
-    // Seed epic detail snapshot for UI-10 with out-of-order dependents
-    issueStores2.getStore('detail:UI-10');
-    issueStores2.getStore('detail:UI-10').applyPush({
+    // Seed epic children snapshot for UI-10 with out-of-order entries
+    issueStores2.getStore('children:UI-10');
+    issueStores2.getStore('children:UI-10').applyPush({
       type: 'snapshot',
-      id: 'detail:UI-10',
+      id: 'children:UI-10',
       revision: 1,
       issues: [
         {
-          id: 'UI-10',
-          title: 'Epic Sort',
-          issue_type: 'epic',
-          dependents: [
-            {
-              id: 'UI-11',
-              title: 'Low priority, newest within p1',
-              status: 'open',
-              priority: 1,
-              issue_type: 'task',
-              created_at: '2025-10-22T10:00:00.000Z',
-              updated_at: '2025-10-22T10:00:00.000Z'
-            },
-            {
-              id: 'UI-12',
-              title: 'Low priority, older',
-              status: 'open',
-              priority: 1,
-              issue_type: 'task',
-              created_at: '2025-10-20T10:00:00.000Z',
-              updated_at: '2025-10-20T10:00:00.000Z'
-            },
-            {
-              id: 'UI-13',
-              title: 'Higher priority number (lower precedence)',
-              status: 'open',
-              priority: 2,
-              issue_type: 'task',
-              created_at: '2025-10-23T10:00:00.000Z',
-              updated_at: '2025-10-23T10:00:00.000Z'
-            }
-          ]
+          id: 'UI-11',
+          title: 'Low priority, newest within p1',
+          status: 'open',
+          priority: 1,
+          issue_type: 'task',
+          created_at: '2025-10-22T10:00:00.000Z',
+          updated_at: '2025-10-22T10:00:00.000Z'
+        },
+        {
+          id: 'UI-12',
+          title: 'Low priority, older',
+          status: 'open',
+          priority: 1,
+          issue_type: 'task',
+          created_at: '2025-10-20T10:00:00.000Z',
+          updated_at: '2025-10-20T10:00:00.000Z'
+        },
+        {
+          id: 'UI-13',
+          title: 'Higher priority number (lower precedence)',
+          status: 'open',
+          priority: 2,
+          issue_type: 'task',
+          created_at: '2025-10-23T10:00:00.000Z',
+          updated_at: '2025-10-23T10:00:00.000Z'
         }
       ]
     });
@@ -273,7 +274,8 @@ describe('views/epics', () => {
           id: 'UI-20',
           title: 'Epic Click Guard',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-21' }]
+          total_children: 1,
+          closed_children: 0
         }
       ]
     });
@@ -287,26 +289,19 @@ describe('views/epics', () => {
       /** @type {any} */ (issueStores3)
     );
     await view.load();
-    // Provide detail snapshot so a child row exists
-    issueStores3.getStore('detail:UI-20');
-    issueStores3.getStore('detail:UI-20').applyPush({
+    // Provide children snapshot so a child row exists
+    issueStores3.getStore('children:UI-20');
+    issueStores3.getStore('children:UI-20').applyPush({
       type: 'snapshot',
-      id: 'detail:UI-20',
+      id: 'children:UI-20',
       revision: 1,
       issues: [
         {
-          id: 'UI-20',
-          title: 'Epic Click Guard',
-          issue_type: 'epic',
-          dependents: [
-            {
-              id: 'UI-21',
-              title: 'Row',
-              status: 'open',
-              priority: 2,
-              issue_type: 'task'
-            }
-          ]
+          id: 'UI-21',
+          title: 'Row',
+          status: 'open',
+          priority: 2,
+          issue_type: 'task'
         }
       ]
     });
@@ -368,13 +363,15 @@ describe('views/epics', () => {
           id: 'UI-40',
           title: 'Auto Expanded',
           issue_type: 'epic',
-          dependents: []
+          total_children: 0,
+          closed_children: 0
         },
         {
           id: 'UI-41',
           title: 'Manual Expand',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-42' }]
+          total_children: 1,
+          closed_children: 0
         }
       ]
     });
@@ -399,33 +396,27 @@ describe('views/epics', () => {
     // Immediately after click, expect Loading…
     const text = manual?.querySelector('.epic-children')?.textContent || '';
     expect(text.includes('Loading…')).toBe(true);
-    // Provide epic detail snapshot (no rendering assertion here)
-    issueStores4.getStore('detail:UI-41');
-    issueStores4.getStore('detail:UI-41').applyPush({
+    // Snapshot push re-renders the group with the child row
+    issueStores4.getStore('children:UI-41');
+    issueStores4.getStore('children:UI-41').applyPush({
       type: 'snapshot',
-      id: 'detail:UI-41',
+      id: 'children:UI-41',
       revision: 1,
       issues: [
         {
-          id: 'UI-41',
-          title: 'Epic Manual',
-          issue_type: 'epic',
-          dependents: [
-            {
-              id: 'UI-42',
-              title: 'Child',
-              status: 'open',
-              priority: 2,
-              issue_type: 'task'
-            }
-          ]
+          id: 'UI-42',
+          title: 'Child',
+          status: 'open',
+          priority: 2,
+          issue_type: 'task'
         }
       ]
     });
-    // Verify mapping via store presence
-    const d = issueStores4.snapshotFor('detail:UI-41');
-    expect(d.length).toBe(1);
-    expect(d[0]?.id).toBe('UI-41');
+    await new Promise((r) => setTimeout(r, 0));
+    const group = mount.querySelector('.epic-group[data-epic-id="UI-41"]');
+    const rows = group?.querySelectorAll('tr.epic-row') || [];
+    expect(rows.length).toBe(1);
+    expect(rows[0]?.getAttribute('data-issue-id')).toBe('UI-42');
   });
 
   test('clicking epic title navigates to the epic detail', async () => {
@@ -477,7 +468,8 @@ describe('views/epics', () => {
           id: 'UI-50',
           title: 'Clickable Epic',
           issue_type: 'epic',
-          dependents: []
+          total_children: 0,
+          closed_children: 0
         }
       ]
     });
@@ -556,13 +548,15 @@ describe('views/epics', () => {
           id: 'UI-70',
           title: 'First',
           issue_type: 'epic',
-          dependents: []
+          total_children: 0,
+          closed_children: 0
         },
         {
           id: 'UI-71',
           title: 'Bar Target',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-72' }]
+          total_children: 1,
+          closed_children: 0
         }
       ]
     });
@@ -631,7 +625,11 @@ describe('views/epics', () => {
         return () => listenersT.delete(fn);
       }
     };
-    const subscriptionsT = createSubscriptionStore(async () => {});
+    /** @type {Array<{ type: string, payload: any }>} */
+    const sent_subscriptions = [];
+    const subscriptionsT = createSubscriptionStore(async (type, payload) => {
+      sent_subscriptions.push({ type, payload });
+    });
     // Two epics: first auto-expands, second starts collapsed.
     issueStoresT.getStore('tab:epics').applyPush({
       type: 'snapshot',
@@ -642,13 +640,15 @@ describe('views/epics', () => {
           id: 'UI-60',
           title: 'First',
           issue_type: 'epic',
-          dependents: []
+          total_children: 0,
+          closed_children: 0
         },
         {
           id: 'UI-61',
           title: 'Target',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-62' }]
+          total_children: 1,
+          closed_children: 0
         }
       ]
     });
@@ -689,6 +689,19 @@ describe('views/epics', () => {
     );
     expect(toggleBtn?.getAttribute('aria-expanded')).toBe('false');
     expect(target?.querySelector('.epic-children')).toBeNull();
+    // Expansion subscribes and collapse releases the children subscription
+    expect(sent_subscriptions).toContainEqual({
+      type: 'subscribe-list',
+      payload: {
+        id: 'children:UI-61',
+        type: 'epic-children',
+        params: { id: 'UI-61' }
+      }
+    });
+    expect(sent_subscriptions).toContainEqual({
+      type: 'unsubscribe-list',
+      payload: { id: 'children:UI-61' }
+    });
   });
 
   test('clicking title navigates; pencil button enters edit mode', async () => {
@@ -740,7 +753,8 @@ describe('views/epics', () => {
           id: 'UI-30',
           title: 'Epic Title Click',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-31' }]
+          total_children: 1,
+          closed_children: 0
         }
       ]
     });
@@ -754,25 +768,18 @@ describe('views/epics', () => {
       /** @type {any} */ (issueStores5)
     );
     await view.load();
-    issueStores5.getStore('detail:UI-30');
-    issueStores5.getStore('detail:UI-30').applyPush({
+    issueStores5.getStore('children:UI-30');
+    issueStores5.getStore('children:UI-30').applyPush({
       type: 'snapshot',
-      id: 'detail:UI-30',
+      id: 'children:UI-30',
       revision: 1,
       issues: [
         {
-          id: 'UI-30',
-          title: 'Epic Title Click',
-          issue_type: 'epic',
-          dependents: [
-            {
-              id: 'UI-31',
-              title: 'Clickable Title',
-              status: 'open',
-              priority: 2,
-              issue_type: 'task'
-            }
-          ]
+          id: 'UI-31',
+          title: 'Clickable Title',
+          status: 'open',
+          priority: 2,
+          issue_type: 'task'
         }
       ]
     });
@@ -860,7 +867,8 @@ describe('views/epics', () => {
           issue_type: 'epic',
           status: 'open',
           priority: 1,
-          dependents: []
+          total_children: 0,
+          closed_children: 0
         },
         {
           id: 'UI-B',
@@ -868,7 +876,8 @@ describe('views/epics', () => {
           issue_type: 'epic',
           status: 'closed',
           priority: 0,
-          dependents: []
+          total_children: 0,
+          closed_children: 0
         },
         {
           id: 'UI-C',
@@ -876,7 +885,8 @@ describe('views/epics', () => {
           issue_type: 'epic',
           status: 'in_progress',
           priority: 3,
-          dependents: []
+          total_children: 0,
+          closed_children: 0
         },
         {
           id: 'UI-D',
@@ -884,7 +894,8 @@ describe('views/epics', () => {
           issue_type: 'epic',
           status: 'open',
           priority: 0,
-          dependents: []
+          total_children: 0,
+          closed_children: 0
         }
       ]
     });

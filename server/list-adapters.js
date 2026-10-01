@@ -69,6 +69,14 @@ export function mapSubscriptionToBdArgs(spec) {
       }
       return showIssueArgs(id);
     }
+    case 'epic-children': {
+      const p = spec.params || {};
+      const id = String(p.id || '').trim();
+      if (id.length === 0) {
+        throw badRequest('Missing param: params.id');
+      }
+      return ['children', id, '--json'];
+    }
     default: {
       throw badRequest(`Unknown subscription type: ${t}`);
     }

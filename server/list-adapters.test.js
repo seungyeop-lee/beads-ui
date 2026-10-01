@@ -134,6 +134,23 @@ describe('list adapters for subscription types', () => {
     expect(args).toEqual(['show', 'UI-123', '--json', '--include-dependents']);
   });
 
+  test('mapSubscriptionToBdArgs returns args for epic-children', () => {
+    const args = mapSubscriptionToBdArgs({
+      type: 'epic-children',
+      params: { id: 'UI-123' }
+    });
+    expect(args).toEqual(['children', 'UI-123', '--json']);
+  });
+
+  test('mapSubscriptionToBdArgs requires id for epic-children', () => {
+    expect(() =>
+      mapSubscriptionToBdArgs({
+        type: 'epic-children',
+        params: { id: '' }
+      })
+    ).toThrow(/Missing param: params.id/);
+  });
+
   test('fetchListForSubscription returns normalized items (Date.parse)', async () => {
     /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
       code: 0,

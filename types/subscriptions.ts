@@ -45,14 +45,15 @@ export type SubscriptionType =
   | 'in-progress-issues'
   | 'closed-issues'
   | 'filtered-issues'
-  | 'issue-detail';
+  | 'issue-detail'
+  | 'epic-children';
 
 export interface SubscribeParamsBase {
   /** Client-chosen subscription id (unique per connection). */
   id: string;
   /** Type of list to subscribe to. */
   type: SubscriptionType;
-  /** Optional parameters for the list, e.g., epic_id or filters. */
+  /** Optional parameters for the list, e.g., id or filters. */
   params?: Record<string, unknown>;
 }
 
