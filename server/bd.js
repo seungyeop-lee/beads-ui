@@ -271,3 +271,15 @@ export async function runBdJson(args, options = {}) {
   }
   return { code: 0, stdoutJson: parsed };
 }
+
+/**
+ * Build `bd show` args for one issue as the UI detail payload.
+ * bd 1.3+ omits the `dependents` array from show output unless the flag is
+ * set, which would leave the detail view's Dependents section always empty.
+ *
+ * @param {string} id
+ * @returns {string[]}
+ */
+export function showIssueArgs(id) {
+  return ['show', id, '--json', '--include-dependents'];
+}

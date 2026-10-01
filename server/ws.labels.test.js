@@ -4,7 +4,13 @@ import { handleMessage } from './ws.js';
 
 vi.mock('./bd.js', () => ({
   runBd: vi.fn(),
-  runBdJson: vi.fn()
+  runBdJson: vi.fn(),
+  showIssueArgs: /** @param {string} id */ (id) => [
+    'show',
+    id,
+    '--json',
+    '--include-dependents'
+  ]
 }));
 
 function makeStubSocket() {

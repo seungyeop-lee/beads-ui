@@ -1,4 +1,4 @@
-import { runBdJson } from './bd.js';
+import { runBdJson, showIssueArgs } from './bd.js';
 import { debug } from './logging.js';
 
 const log = debug('list-adapters');
@@ -67,7 +67,7 @@ export function mapSubscriptionToBdArgs(spec) {
       if (id.length === 0) {
         throw badRequest('Missing param: params.id');
       }
-      return ['show', id, '--json'];
+      return showIssueArgs(id);
     }
     default: {
       throw badRequest(`Unknown subscription type: ${t}`);

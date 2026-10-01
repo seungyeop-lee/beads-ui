@@ -245,3 +245,16 @@ describe('runBd dolt auto-start', () => {
     expect(mockedSpawn).toHaveBeenCalledTimes(4);
   });
 });
+
+describe('showIssueArgs', () => {
+  test('includes dependents so the detail view can render them', async () => {
+    vi.resetModules();
+    const { showIssueArgs } = await import('./bd.js');
+    expect(showIssueArgs('UI-1')).toEqual([
+      'show',
+      'UI-1',
+      '--json',
+      '--include-dependents'
+    ]);
+  });
+});

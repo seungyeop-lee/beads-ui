@@ -6,7 +6,7 @@
 import path from 'node:path';
 import { WebSocketServer } from 'ws';
 import { isRequest, makeError, makeOk } from '../app/protocol.js';
-import { getGitUserName, runBd, runBdJson } from './bd.js';
+import { getGitUserName, runBd, runBdJson, showIssueArgs } from './bd.js';
 import { resolveWorkspaceDatabase } from './db.js';
 import { fetchListForSubscription } from './list-adapters.js';
 import { debug } from './logging.js';
@@ -756,7 +756,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(showIssueArgs(id));
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -801,7 +801,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(showIssueArgs(id));
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -847,7 +847,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(showIssueArgs(id));
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -911,7 +911,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(showIssueArgs(id));
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1008,7 +1008,7 @@ export async function handleMessage(ws, data) {
       return;
     }
     const id = typeof view_id === 'string' && view_id.length > 0 ? view_id : a;
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(showIssueArgs(id));
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1052,7 +1052,7 @@ export async function handleMessage(ws, data) {
       return;
     }
     const id = typeof view_id === 'string' && view_id.length > 0 ? view_id : a;
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(showIssueArgs(id));
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1095,7 +1095,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(showIssueArgs(id));
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1138,7 +1138,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(showIssueArgs(id));
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
