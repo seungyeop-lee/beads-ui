@@ -1,5 +1,15 @@
 # Changes
 
+## 0.17.0
+
+- [`fcad66e`](https://github.com/seungyeop-lee/beads-ui/commit/fcad66e97468ac8a0b31992f74010bb7a6497987)
+  feat: add epic-children subscription type
+    >
+    > Epic children now stream from bd children instead of the dependents array bd 1.3+ stopped emitting on show output.
+    >
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-10-01._
+
 ## 0.16.3
 
 - [`2af2acc`](https://github.com/seungyeop-lee/beads-ui/commit/2af2acc935766da15a73327011bb0234f4873782)
