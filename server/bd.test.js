@@ -219,7 +219,9 @@ describe('runBd dolt auto-start', () => {
     const { runBd: fresh_run_bd } = await import('./bd.js');
     mockedSpawn
       .mockReturnValueOnce(makeFakeProc('', UNREACHABLE_STDERR, 1))
-      .mockReturnValueOnce(makeFakeProc('', 'not supported in embedded mode', 1));
+      .mockReturnValueOnce(
+        makeFakeProc('', 'not supported in embedded mode', 1)
+      );
 
     const res = await fresh_run_bd(['list', '--json']);
 
