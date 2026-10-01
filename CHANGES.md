@@ -1,5 +1,25 @@
 # Changes
 
+## 0.16.2
+
+- [`f813a91`](https://github.com/seungyeop-lee/beads-ui/commit/f813a91c01157c98e7601a4215b9685bbbc15cf2)
+  chore: format bd.test.js to satisfy prettier
+- [`d6de506`](https://github.com/seungyeop-lee/beads-ui/commit/d6de506a38949282ce2cfe86e78d87a861229d81)
+  chore: gitignore zvec-grep daemon runtime directory
+- [`65166ae`](https://github.com/seungyeop-lee/beads-ui/commit/65166ae8b9b7de5e9c9d3a1f19981c760278b5b4)
+  chore: gitignore bd gate lock artifact
+- [`8901763`](https://github.com/seungyeop-lee/beads-ui/commit/8901763e58801560e255dddb25079811a5d92d31)
+  fix: pass --include-dependents to bd show so dependents render
+- [`63fd61c`](https://github.com/seungyeop-lee/beads-ui/commit/63fd61ca9580cbb0188ad6d5f64e5bd77b90b692)
+  fix: start dolt server automatically when bd reports it unreachable
+- [`9ff8a07`](https://github.com/seungyeop-lee/beads-ui/commit/9ff8a0768799271a79d7229131df925b4bb72e57)
+  chore: add Beads CLI generated files to .gitignore
+    >
+    > Ignore .beads-credential-key and .beads/proxieddb/ directory that bd init generates — these are machine-local files not meant for version control.
+    >
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-10-01._
+
 ## 0.16.1
 
 - [`045576d`](https://github.com/seungyeop-lee/beads-ui/commit/045576dba8602340e71f43d8ad6d3fb182753970)
