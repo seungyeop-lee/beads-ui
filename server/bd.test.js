@@ -192,3 +192,56 @@ describe('getGitUserName', () => {
     expect(name).toBe('');
   });
 });
+
+describe('runBd dolt auto-start', () => {
+  const UNREACHABLE_STDERR =
+    'Error: failed to open database: Dolt server unreachable at 127.0.0.1:3308: dial tcp 127.0.0.1:3308: connect: connection refused';
+
+  test('starts the dolt server and retries once when unreachable', async () => {
+    vi.resetModules();
+    const { runBd: fresh_run_bd } = await import('./bd.js');
+    mockedSpawn
+      .mockReturnValueOnce(makeFakeProc('', UNREACHABLE_STDERR, 1))
+      .mockReturnValueOnce(makeFakeProc('Dolt server started', '', 0))
+      .mockReturnValueOnce(makeFakeProc('[]', '', 0));
+
+    const res = await fresh_run_bd(['list', '--json']);
+
+    expect(res.code).toBe(0);
+    expect(res.stdout).toBe('[]');
+    expect(mockedSpawn).toHaveBeenCalledTimes(3);
+    const start_args = mockedSpawn.mock.calls[1][1];
+    expect(start_args).toEqual(['--sandbox', 'dolt', 'start']);
+  });
+
+  test('returns the original failure when dolt start also fails', async () => {
+    vi.resetModules();
+    const { runBd: fresh_run_bd } = await import('./bd.js');
+    mockedSpawn
+      .mockReturnValueOnce(makeFakeProc('', UNREACHABLE_STDERR, 1))
+      .mockReturnValueOnce(makeFakeProc('', 'not supported in embedded mode', 1));
+
+    const res = await fresh_run_bd(['list', '--json']);
+
+    expect(res.code).toBe(1);
+    expect(res.stderr).toBe(UNREACHABLE_STDERR);
+    expect(mockedSpawn).toHaveBeenCalledTimes(2);
+  });
+
+  test('does not retry dolt start again within the cooldown window', async () => {
+    vi.resetModules();
+    const { runBd: fresh_run_bd } = await import('./bd.js');
+    mockedSpawn
+      .mockReturnValueOnce(makeFakeProc('', UNREACHABLE_STDERR, 1))
+      .mockReturnValueOnce(makeFakeProc('Dolt server started', '', 0))
+      .mockReturnValueOnce(makeFakeProc('', UNREACHABLE_STDERR, 1))
+      .mockReturnValueOnce(makeFakeProc('', UNREACHABLE_STDERR, 1));
+
+    await fresh_run_bd(['list', '--json']);
+    const res = await fresh_run_bd(['list', '--json']);
+
+    expect(res.code).toBe(1);
+    expect(res.stderr).toBe(UNREACHABLE_STDERR);
+    expect(mockedSpawn).toHaveBeenCalledTimes(4);
+  });
+});

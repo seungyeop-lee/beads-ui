@@ -61,7 +61,53 @@ export function getBdBin() {
  * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
  */
 export function runBd(args, options = {}) {
-  return withBdRunQueue(async () => runBdUnlocked(args, options));
+  return withBdRunQueue(async () => {
+    const result = await runBdUnlocked(args, options);
+    if (result.code !== 0 && isDoltServerUnreachable(result.stderr)) {
+      // bd 1.3+ Dolt server-mode workspaces need a running dolt sql-server
+      // that bd itself never starts. Start it on demand and retry once so the
+      // UI self-heals after a reboot instead of failing every request.
+      if (await startDoltServerOnce(options)) {
+        return runBdUnlocked(args, options);
+      }
+    }
+    return result;
+  });
+}
+
+/**
+ * Detect bd's failure to reach a configured (but stopped) Dolt sql-server.
+ *
+ * @param {string} stderr
+ * @returns {boolean}
+ */
+function isDoltServerUnreachable(stderr) {
+  return /Dolt server unreachable/i.test(stderr);
+}
+
+/** Cooldown so a persistently broken server is not hammered with restarts. */
+const DOLT_START_COOLDOWN_MS = 30_000;
+/** @type {number} */
+let last_dolt_start_at = 0;
+
+/**
+ * Run `bd dolt start` for the workspace the failing command targeted.
+ * Serialized by the bd run queue like any other invocation.
+ *
+ * @param {{ cwd?: string, env?: Record<string, string | undefined> }} options
+ * @returns {Promise<boolean>} true when the server started successfully
+ */
+async function startDoltServerOnce(options = {}) {
+  const now = Date.now();
+  if (now - last_dolt_start_at < DOLT_START_COOLDOWN_MS) {
+    return false;
+  }
+  last_dolt_start_at = now;
+  const res = await runBdUnlocked(['dolt', 'start'], options);
+  if (res.code !== 0) {
+    log('bd dolt start failed (cwd=%s): %s', options.cwd || '', res.stderr);
+  }
+  return res.code === 0;
 }
 
 /**
