@@ -1,5 +1,12 @@
 # Changes
 
+## 0.16.3
+
+- [`2af2acc`](https://github.com/seungyeop-lee/beads-ui/commit/2af2acc935766da15a73327011bb0234f4873782)
+  fix: add showIssueArgs to bd module mock in list-adapters test
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-10-01._
+
 ## 0.16.2
 
 - [`f813a91`](https://github.com/seungyeop-lee/beads-ui/commit/f813a91c01157c98e7601a4215b9685bbbc15cf2)
