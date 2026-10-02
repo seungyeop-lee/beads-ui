@@ -40,7 +40,7 @@
     "install:global": "pnpm pack && pnpm add -g \"$PWD\"/seungyeop-lee-beads-ui-*.tgz; EXIT=$?; rm -f seungyeop-lee-beads-ui-*.tgz; exit $EXIT",
     "uninstall:global": "pnpm remove -g @seungyeop-lee/beads-ui"
   },
-  "packageManager": "pnpm@11.5.2+sha512.71c631e382066efc25625d5cf029075de07b61b37f6e27350fbd84b1bda5864c8c1967adc280776b45c30a715c0359a3be08fef42d5bb09e2b99029979692916",
+  "packageManager": "pnpm@12.8.1+sha512.f64ba907507f5ceafe06c8d38e6052d0179444580ec1279ddd5bfc11cb48aa8a2644b66598e07e761da84872a9fc57d5f902b87fa49d024198d558612aabbe45",
   "dependencies": {
     "debug": "^4.4.3",
     "dompurify": "^3.3.0",
