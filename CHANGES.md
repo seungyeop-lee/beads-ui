@@ -1,5 +1,16 @@
 # Changes
 
+## 0.18.0
+
+- [`83bbd40`](https://github.com/seungyeop-lee/beads-ui/commit/83bbd40bbb731dc82e467f5670a5e6cb88f70b07)
+  chore: update pnpm from 11.5.2 to 12.8.1
+- [`421a12d`](https://github.com/seungyeop-lee/beads-ui/commit/421a12dc1f9ea826999d8d6b4c377a8106cf32c9)
+  feat: fit detail section editors to their content height
+- [`8c1b15b`](https://github.com/seungyeop-lee/beads-ui/commit/8c1b15bea57b7cf19484f9596cc52a7278db066f)
+  fix: skip edit mode when a click ends a text selection in detail sections
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-10-02._
+
 ## 0.17.0
 
 - [`fcad66e`](https://github.com/seungyeop-lee/beads-ui/commit/fcad66e97468ac8a0b31992f74010bb7a6497987)
