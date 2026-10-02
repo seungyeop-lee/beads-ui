@@ -75,7 +75,7 @@ function formatCommentDate(value) {
  * Wrap a click-to-edit handler so a click that ends a drag text selection
  * inside the element does not enter edit mode, keeping the text copyable.
  *
- * @param {() => void} onEdit
+ * @param {(ev: Event) => void} onEdit
  * @returns {(ev: MouseEvent) => void}
  */
 function editUnlessSelecting(onEdit) {
@@ -90,8 +90,37 @@ function editUnlessSelecting(onEdit) {
     ) {
       return;
     }
-    onEdit();
+    onEdit(ev);
   };
+}
+
+/**
+ * Resize a textarea so its whole content is visible without inner scrolling.
+ * `data-min-height` holds the outer height of the read-mode block it replaced,
+ * so switching into edit mode never shrinks the section.
+ *
+ * @param {HTMLTextAreaElement} ta
+ */
+function fitTextarea(ta) {
+  const style = window.getComputedStyle(ta);
+  const borders =
+    (parseFloat(style.borderTopWidth) || 0) +
+    (parseFloat(style.borderBottomWidth) || 0);
+  const paddings =
+    (parseFloat(style.paddingTop) || 0) +
+    (parseFloat(style.paddingBottom) || 0);
+  const min_outer = Number(ta.dataset.minHeight) || 0;
+  ta.style.height = 'auto';
+  const outer = Math.max(ta.scrollHeight + borders, min_outer);
+  const inset = style.boxSizing === 'border-box' ? 0 : paddings + borders;
+  ta.style.height = `${outer - inset}px`;
+}
+
+/**
+ * @param {Event} ev
+ */
+function onEditorInput(ev) {
+  fitTextarea(/** @type {HTMLTextAreaElement} */ (ev.currentTarget));
 }
 
 /**
@@ -611,9 +640,13 @@ export function createDetailView(
     }
   };
 
-  const onDescEdit = () => {
-    edit_desc = true;
-    doRender();
+  /**
+   * @param {Event} ev
+   */
+  const onDescEdit = (ev) => {
+    enterTextEdit(ev, 'description', () => {
+      edit_desc = true;
+    });
   };
   /**
    * @param {KeyboardEvent} ev
@@ -677,9 +710,13 @@ export function createDetailView(
   };
 
   // Design inline edit handlers (same UX as Description)
-  const onDesignEdit = () => {
-    edit_design = true;
-    doRender();
+  /**
+   * @param {Event} ev
+   */
+  const onDesignEdit = (ev) => {
+    enterTextEdit(ev, 'design', () => {
+      edit_design = true;
+    });
     try {
       const ta = /** @type {HTMLTextAreaElement|null} */ (
         mount_element.querySelector('#detail-root .design textarea')
@@ -755,9 +792,13 @@ export function createDetailView(
   };
 
   // Notes inline edit handlers
-  const onNotesEdit = () => {
-    edit_notes = true;
-    doRender();
+  /**
+   * @param {Event} ev
+   */
+  const onNotesEdit = (ev) => {
+    enterTextEdit(ev, 'notes', () => {
+      edit_notes = true;
+    });
   };
   /**
    * @param {KeyboardEvent} ev
@@ -822,9 +863,13 @@ export function createDetailView(
     doRender();
   };
 
-  const onAcceptEdit = () => {
-    edit_accept = true;
-    doRender();
+  /**
+   * @param {Event} ev
+   */
+  const onAcceptEdit = (ev) => {
+    enterTextEdit(ev, 'acceptance', () => {
+      edit_accept = true;
+    });
   };
   /**
    * @param {KeyboardEvent} ev
@@ -1055,6 +1100,7 @@ export function createDetailView(
       ? html`<div class="description">
           <textarea
             @keydown=${onDescKeydown}
+            @input=${onEditorInput}
             .value=${issue.description || ''}
             rows="8"
             style="width:100%"
@@ -1098,6 +1144,7 @@ export function createDetailView(
             : ''}
           <textarea
             @keydown=${onAcceptKeydown}
+            @input=${onEditorInput}
             .value=${acceptance_text}
             rows="6"
             style="width:100%"
@@ -1138,6 +1185,7 @@ export function createDetailView(
             : ''}
           <textarea
             @keydown=${onNotesKeydown}
+            @input=${onEditorInput}
             .value=${notes_text}
             rows="6"
             style="width:100%"
@@ -1216,6 +1264,7 @@ export function createDetailView(
             : ''}
           <textarea
             @keydown=${onDesignKeydown}
+            @input=${onEditorInput}
             .value=${design_text}
             rows="6"
             style="width:100%"
@@ -1419,6 +1468,28 @@ export function createDetailView(
     `;
   }
 
+  /**
+   * Switch a markdown section into edit mode and fit its textarea to the
+   * content, keeping at least the height of the read-mode block.
+   *
+   * @param {Event} ev - Event fired on the read-mode block.
+   * @param {string} section - Class of the edit-mode wrapper (e.g. 'notes').
+   * @param {() => void} enable - Sets the section's edit flag.
+   */
+  function enterTextEdit(ev, section, enable) {
+    const read_height = /** @type {HTMLElement} */ (ev.currentTarget)
+      .offsetHeight;
+    enable();
+    doRender();
+    const ta = /** @type {HTMLTextAreaElement|null} */ (
+      mount_element.querySelector(`#detail-root .${section} textarea`)
+    );
+    if (ta) {
+      ta.dataset.minHeight = String(read_height);
+      fitTextarea(ta);
+    }
+  }
+
   function doRender() {
     if (!current) {
       renderPlaceholder(current_id ? 'Loading…' : 'No issue selected');
@@ -1561,7 +1632,7 @@ export function createDetailView(
    */
   function onDescEditableKeydown(ev) {
     if (ev.key === 'Enter') {
-      onDescEdit();
+      onDescEdit(ev);
     }
   }
 
@@ -1570,7 +1641,7 @@ export function createDetailView(
    */
   function onAcceptEditableKeydown(ev) {
     if (ev.key === 'Enter') {
-      onAcceptEdit();
+      onAcceptEdit(ev);
     }
   }
 
@@ -1579,7 +1650,7 @@ export function createDetailView(
    */
   function onNotesEditableKeydown(ev) {
     if (ev.key === 'Enter') {
-      onNotesEdit();
+      onNotesEdit(ev);
     }
   }
 
@@ -1588,7 +1659,7 @@ export function createDetailView(
    */
   function onDesignEditableKeydown(ev) {
     if (ev.key === 'Enter') {
-      onDesignEdit();
+      onDesignEdit(ev);
     }
   }
 
