@@ -72,6 +72,29 @@ function formatCommentDate(value) {
  */
 
 /**
+ * Wrap a click-to-edit handler so a click that ends a drag text selection
+ * inside the element does not enter edit mode, keeping the text copyable.
+ *
+ * @param {() => void} onEdit
+ * @returns {(ev: MouseEvent) => void}
+ */
+function editUnlessSelecting(onEdit) {
+  return (ev) => {
+    const selection = window.getSelection();
+    const target = /** @type {Node} */ (ev.currentTarget);
+    if (
+      selection &&
+      !selection.isCollapsed &&
+      (target.contains(selection.anchorNode) ||
+        target.contains(selection.focusNode))
+    ) {
+      return;
+    }
+    onEdit();
+  };
+}
+
+/**
  * @param {string} hash
  */
 function defaultNavigateFn(hash) {
@@ -1046,7 +1069,7 @@ export function createDetailView(
           tabindex="0"
           role="button"
           aria-label="Edit description"
-          @click=${onDescEdit}
+          @click=${editUnlessSelecting(onDescEdit)}
           @keydown=${onDescEditableKeydown}
         >
           ${(() => {
@@ -1096,7 +1119,7 @@ export function createDetailView(
                 tabindex="0"
                 role="button"
                 aria-label="Edit acceptance criteria"
-                @click=${onAcceptEdit}
+                @click=${editUnlessSelecting(onAcceptEdit)}
                 @keydown=${onAcceptEditableKeydown}
               >
                 ${has
@@ -1136,7 +1159,7 @@ export function createDetailView(
                 tabindex="0"
                 role="button"
                 aria-label="Edit notes"
-                @click=${onNotesEdit}
+                @click=${editUnlessSelecting(onNotesEdit)}
                 @keydown=${onNotesEditableKeydown}
               >
                 ${has
@@ -1214,7 +1237,7 @@ export function createDetailView(
                 tabindex="0"
                 role="button"
                 aria-label="Edit design"
-                @click=${onDesignEdit}
+                @click=${editUnlessSelecting(onDesignEdit)}
                 @keydown=${onDesignEditableKeydown}
               >
                 ${has
