@@ -1678,6 +1678,13 @@ export function createDetailView(
       }
       // Render from current (if available) or keep placeholder until push arrives
       pending = false;
+      edit_title = false;
+      edit_desc = false;
+      edit_design = false;
+      edit_notes = false;
+      edit_accept = false;
+      edit_assignee = false;
+      new_label_text = '';
       comment_text = '';
       comment_pending = false;
       doRender();

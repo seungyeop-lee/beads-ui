@@ -163,4 +163,56 @@ describe('views/detail edits', () => {
     await vi.advanceTimersByTimeAsync(3000);
     vi.useRealTimers();
   });
+
+  test('reloading an issue returns sections to read mode', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    const issue = {
+      id: 'UI-9',
+      title: 'T',
+      description: 'D',
+      status: 'open',
+      priority: 2
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-9' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(
+      mount,
+      mockSend(async () => {
+        throw new Error('Unexpected');
+      }),
+      undefined,
+      stores
+    );
+    await view.load('UI-9');
+
+    // Enter description edit mode
+    const md = /** @type {HTMLDivElement} */ (mount.querySelector('.md'));
+    md.click();
+    expect(
+      mount.querySelector('#detail-root .description textarea')
+    ).toBeTruthy();
+
+    // Dialog close (main.js calls clear), then reopen calls load again
+    view.clear();
+    await view.load('UI-9');
+
+    expect(
+      mount.querySelector('#detail-root .description textarea')
+    ).toBeNull();
+    const mdAgain = /** @type {HTMLDivElement} */ (
+      mount.querySelector('#detail-root .md')
+    );
+    expect(mdAgain).toBeTruthy();
+    expect(mdAgain.textContent || '').toContain('D');
+  });
 });
