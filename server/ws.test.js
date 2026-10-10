@@ -48,5 +48,3 @@ describe('ws message handling', () => {
     expect(obj.error.code).toBe('unknown_type');
   });
 });
-
-// Note: broadcast behavior is integration-tested later when a full server can run.

@@ -46,8 +46,12 @@ push‑only data flow used between the browser SPA and the local Node.js server.
 
 - Server (server/)
   - Web: `server/app.js` (Express app), `server/index.js` (startup and wiring)
-  - WebSocket: `server/ws.js` (attach server, parse, validate, dispatch
-    handlers, broadcast events)
+  - WebSocket: `server/ws.js` (attach server, parse, validate, dispatch via a
+    handler map) with per-domain handler modules under `server/ws/` (`comments`,
+    `deps`, `issues`, `labels`, `lists`, `mutations`, `workspaces`), the shared
+    mutate-and-reply flow in `server/ws/issue-mutation.js`, connection/workspace
+    state in `server/ws/context.js`, and refresh scheduling/delta publishing in
+    `server/ws/list-refresh.js`
   - bd bridge: `server/bd.js` (spawn `bd`, inject `--db` consistently, JSON
     helpers)
   - DB resolution/watch: `server/db.js` (resolve active DB path),
