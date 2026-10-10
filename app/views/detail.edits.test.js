@@ -215,4 +215,70 @@ describe('views/detail edits', () => {
     expect(mdAgain).toBeTruthy();
     expect(mdAgain.textContent || '').toContain('D');
   });
+
+  test('escape in an editor is default-prevented so the dialog stays open', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    /** @type {any} */
+    const issue = {
+      id: 'UI-9',
+      title: 'Title',
+      description: 'D',
+      status: 'open',
+      priority: 2
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-9' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(
+      mount,
+      mockSend(async () => issue),
+      undefined,
+      stores
+    );
+    await view.load('UI-9');
+
+    // Section editor: Escape must be consumed
+    const md = /** @type {HTMLDivElement} */ (mount.querySelector('.md'));
+    md.click();
+    const ta = /** @type {HTMLTextAreaElement} */ (
+      mount.querySelector('#detail-root .description textarea')
+    );
+    expect(ta).toBeTruthy();
+    const ta_ev = new window.KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true
+    });
+    ta.dispatchEvent(ta_ev);
+    expect(ta_ev.defaultPrevented).toBe(true);
+    expect(
+      mount.querySelector('#detail-root .description textarea')
+    ).toBeNull();
+
+    // Title editor: Escape must be consumed
+    const span = /** @type {HTMLElement} */ (
+      mount.querySelector('.detail-title .editable')
+    );
+    span.click();
+    const input = /** @type {HTMLInputElement} */ (
+      mount.querySelector('.detail-title input')
+    );
+    expect(input).toBeTruthy();
+    const in_ev = new window.KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true
+    });
+    input.dispatchEvent(in_ev);
+    expect(in_ev.defaultPrevented).toBe(true);
+    expect(mount.querySelector('.detail-title input')).toBeNull();
+  });
 });

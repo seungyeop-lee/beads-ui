@@ -489,6 +489,7 @@ export function createDetailView(
      */
     const onKeydown = (ev) => {
       if (ev.key === 'Escape') {
+        ev.preventDefault();
         editing_text[field] = false;
         doRender();
       } else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
@@ -599,9 +600,6 @@ export function createDetailView(
       if (ev.key === 'Enter') {
         ev.preventDefault();
         set_editing(true);
-      } else if (ev.key === 'Escape') {
-        ev.preventDefault();
-        set_editing(false);
       }
     };
 
@@ -926,6 +924,7 @@ export function createDetailView(
    */
   function onTitleInputKeydown(ev) {
     if (ev.key === 'Escape') {
+      ev.preventDefault();
       editing_inline.title = false;
       doRender();
     } else if (ev.key === 'Enter') {

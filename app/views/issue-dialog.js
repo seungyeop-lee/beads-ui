@@ -63,9 +63,30 @@ export function createIssueDialog(mount_element, store, onClose) {
       requestClose();
     }
   });
+  // Escape inside a form control cancels that control's edit, not the
+  // dialog: the browser still raises a cancel event on the dialog, so
+  // remember where the Escape keydown started and let the editor consume it.
+  /** @type {boolean} */
+  let escape_in_editor = false;
+  dialog.addEventListener(
+    'keydown',
+    (ev) => {
+      const in_editor =
+        ev.target instanceof HTMLElement &&
+        (ev.target.tagName === 'INPUT' ||
+          ev.target.tagName === 'TEXTAREA' ||
+          ev.target.isContentEditable);
+      escape_in_editor = ev.key === 'Escape' && in_editor;
+    },
+    true
+  );
   // Esc key produces a cancel event on <dialog>
   dialog.addEventListener('cancel', (ev) => {
     ev.preventDefault();
+    if (escape_in_editor) {
+      escape_in_editor = false;
+      return;
+    }
     requestClose();
   });
   // Close button

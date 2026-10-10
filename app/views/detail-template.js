@@ -403,6 +403,8 @@ export function createDetailTemplate(handlers) {
       </ul>
       <div class="props-card__footer">
         <input
+          type="text"
+          placeholder="Label"
           size="12"
           .value=${ui.new_label_text}
           @input=${onLabelInput}
