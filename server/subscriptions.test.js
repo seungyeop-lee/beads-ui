@@ -2,18 +2,10 @@ import { describe, expect, test, vi } from 'vitest';
 import {
   SubscriptionRegistry,
   computeDelta,
-  keyOf,
   toItemsMap
 } from './subscriptions.js';
 
 describe('subscriptions registry', () => {
-  test('keyOf sorts params for stable keys', () => {
-    const a = keyOf({ type: 'list', params: { status: 'open', limit: 50 } });
-    const b = keyOf({ type: 'list', params: { limit: 50, status: 'open' } });
-    expect(a).toBe('list?limit=50&status=open');
-    expect(b).toBe('list?limit=50&status=open');
-  });
-
   test('computeDelta returns added/updated/removed', () => {
     const prev = toItemsMap([
       { id: 'UI-1', updated_at: 1 },

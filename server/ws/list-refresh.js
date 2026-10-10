@@ -4,9 +4,10 @@
  * @import { MessageType } from '../../app/protocol.js'
  * @import { WebSocket } from 'ws'
  */
+import { keyOf } from '../../app/data/subscription-key.js';
 import { fetchListForSubscription } from '../list-adapters.js';
 import { debug } from '../logging.js';
-import { keyOf, registry } from '../subscriptions.js';
+import { registry } from '../subscriptions.js';
 import {
   ensureSubs,
   getCurrentWorkspace,

@@ -13,13 +13,10 @@
  * No TTL eviction; entries are swept when sockets disconnect (and only when
  * that leaves the subscriber set empty).
  */
-
 /**
- * @typedef {{
- *   type: string,
- *   params?: Record<string, string | number | boolean>
- * }} SubscriptionSpec
+ * @import { SubscriptionSpec } from '../app/data/subscription-key.js'
  */
+import { keyOf } from '../app/data/subscription-key.js';
 
 /**
  * @typedef {{ updated_at: number, closed_at: number | null, _board_column?: string }} ItemMeta
@@ -44,27 +41,6 @@ function createEntry() {
     subscribers: new Set(),
     lock: Promise.resolve()
   };
-}
-
-/**
- * Generate a stable subscription key string from a spec. Sorts params keys.
- *
- * @param {SubscriptionSpec} spec
- * @returns {string}
- */
-export function keyOf(spec) {
-  const type = String(spec.type || '').trim();
-  /** @type {Record<string, string>} */
-  const flat = {};
-  if (spec.params && typeof spec.params === 'object') {
-    const keys = Object.keys(spec.params).sort();
-    for (const k of keys) {
-      const v = spec.params[k];
-      flat[k] = String(v);
-    }
-  }
-  const enc = new URLSearchParams(flat).toString();
-  return enc.length > 0 ? `${type}?${enc}` : type;
 }
 
 /**

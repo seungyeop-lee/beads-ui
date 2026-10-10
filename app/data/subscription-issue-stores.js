@@ -4,7 +4,7 @@
  */
 import { debug } from '../utils/logging.js';
 import { createSubscriptionIssueStore } from './subscription-issue-store.js';
-import { subKeyOf } from './subscriptions-store.js';
+import { keyOf } from './subscription-key.js';
 
 /**
  * Registry managing per-subscription issue stores. Stores receive full-issue
@@ -41,7 +41,7 @@ export function createSubscriptionIssueStores() {
    * @param {SubscriptionIssueStoreOptions} [options]
    */
   function register(client_id, spec, options) {
-    const next_key = spec ? subKeyOf(spec) : '';
+    const next_key = spec ? keyOf(spec) : '';
     const prev_key = key_by_id.get(client_id) || '';
     const has_store = stores_by_id.has(client_id);
     log('register %s key=%s (prev=%s)', client_id, next_key, prev_key);

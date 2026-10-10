@@ -11,7 +11,7 @@ describe('client subscription store', () => {
     const store = createSubscriptionStore(send);
 
     const spec = { type: 'all-issues' };
-    const key = store._subKeyOf(spec);
+    const key = store._keyOf(spec);
     const unsub = await store.subscribeList('s1', spec);
 
     // Initial add
@@ -40,7 +40,7 @@ describe('client subscription store', () => {
     const send = async () => ({ ok: true });
     const store = createSubscriptionStore(send);
     const spec = { type: 'in-progress-issues' };
-    const key = store._subKeyOf(spec);
+    const key = store._keyOf(spec);
 
     const unsub1 = await store.subscribeList('s1', spec);
     const unsub2 = await store.subscribeList('s2', spec);
@@ -62,7 +62,7 @@ describe('client subscription store', () => {
     const send = async () => ({ ok: true });
     const store = createSubscriptionStore(send);
     const spec = { type: 'blocked-issues' };
-    const key = store._subKeyOf(spec);
+    const key = store._keyOf(spec);
 
     const unsub = await store.subscribeList('sZ', spec);
     store._applyDelta(key, { added: ['UI-7'], updated: [], removed: [] });

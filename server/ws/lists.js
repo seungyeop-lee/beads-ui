@@ -4,10 +4,11 @@
  * @import { RequestEnvelope } from '../../app/protocol.js'
  * @import { WebSocket } from 'ws'
  */
+import { keyOf } from '../../app/data/subscription-key.js';
 import { makeError, makeOk } from '../../app/protocol.js';
 import { fetchListForSubscription } from '../list-adapters.js';
 import { debug } from '../logging.js';
-import { keyOf, registry } from '../subscriptions.js';
+import { registry } from '../subscriptions.js';
 import { validateSubscribeListPayload } from '../validators.js';
 import { ensureSubs, getCurrentWorkspace } from './context.js';
 import {

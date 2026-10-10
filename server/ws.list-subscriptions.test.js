@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
 import { describe, expect, test, vi } from 'vitest';
+import { keyOf } from '../app/data/subscription-key.js';
 import { fetchListForSubscription } from './list-adapters.js';
-import { keyOf, registry } from './subscriptions.js';
+import { registry } from './subscriptions.js';
 import { attachWsServer, handleMessage, scheduleListRefresh } from './ws.js';
 
 // Mock adapters BEFORE importing ws.js to ensure the mock is applied

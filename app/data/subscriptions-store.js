@@ -1,7 +1,9 @@
 /**
  * @import { MessageType } from '../protocol.js'
+ * @import { SubscriptionSpec } from './subscription-key.js'
  */
 import { debug } from '../utils/logging.js';
+import { keyOf } from './subscription-key.js';
 
 /**
  * Client-side list subscription store.
@@ -10,32 +12,6 @@ import { debug } from '../utils/logging.js';
  * Applies server `list-delta` events per subscription key and exposes simple
  * selectors for rendering.
  */
-
-/**
- * @typedef {{ type: string, params?: Record<string, string|number|boolean> }} SubscriptionSpec
- */
-
-/**
- * Generate a stable subscription key string from a spec.
- * Mirrors server `keyOf` implementation (sorted params, URLSearchParams).
- *
- * @param {SubscriptionSpec} spec
- * @returns {string}
- */
-export function subKeyOf(spec) {
-  const type = String(spec.type || '').trim();
-  /** @type {Record<string, string>} */
-  const flat = {};
-  if (spec.params && typeof spec.params === 'object') {
-    const keys = Object.keys(spec.params).sort();
-    for (const k of keys) {
-      const v = spec.params[k];
-      flat[k] = String(v);
-    }
-  }
-  const enc = new URLSearchParams(flat).toString();
-  return enc.length > 0 ? `${type}?${enc}` : type;
-}
 
 /**
  * Create a list subscription store.
@@ -110,7 +86,7 @@ export function createSubscriptionStore(send) {
    * @returns {Promise<() => Promise<void>>}
    */
   async function subscribeList(client_id, spec) {
-    const key = subKeyOf(spec);
+    const key = keyOf(spec);
     log('subscribe %s key=%s', client_id, key);
     // Initialize local entry immediately to capture early deltas
     if (!subs_by_id.has(client_id)) {
@@ -244,7 +220,7 @@ export function createSubscriptionStore(send) {
     subscribeList,
     // test/diagnostics helpers
     _applyDelta: applyDelta,
-    _subKeyOf: subKeyOf,
+    _keyOf: keyOf,
     selectors
   };
 }
