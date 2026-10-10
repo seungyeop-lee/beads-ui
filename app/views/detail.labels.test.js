@@ -76,4 +76,95 @@ describe('detail view labels', () => {
     });
     expect(mount.querySelectorAll('.labels .badge').length).toBe(1);
   });
+
+  test('label-add reply without comments keeps title and comments rendered', async () => {
+    const mount = mountDiv();
+    let current = {
+      id: 'UI-6',
+      title: 'Keep rendering',
+      status: 'open',
+      priority: 2,
+      labels: ['alpha'],
+      comments: [{ author: 'me', text: 'prior comment', created_at: 1 }]
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-6' ? [current] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const sendFn = vi.fn(async () => {
+      current = { ...current, labels: [...current.labels, 'beta'] };
+      // Realistic `bd show --json` reply: no comments array, only the count.
+      const { comments, ...reply } = current;
+      return { ...reply, comment_count: comments.length };
+    });
+
+    const view = createDetailView(mount, sendFn, undefined, stores);
+    await view.load('UI-6');
+    expect(mount.querySelectorAll('.comment-item').length).toBe(1);
+
+    const input = /** @type {HTMLInputElement} */ (
+      mount.querySelector('.labels input')
+    );
+    input.value = 'beta';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+    );
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+
+    expect(mount.querySelector('h2 .editable')?.textContent).toBe(
+      'Keep rendering'
+    );
+    expect(mount.querySelectorAll('.labels .badge').length).toBe(2);
+    expect(mount.querySelectorAll('.comment-item').length).toBe(1);
+    expect(input.value).toBe('');
+  });
+
+  test('label-add reply shaped as an array is ignored instead of blanking the view', async () => {
+    const mount = mountDiv();
+    const current = {
+      id: 'UI-7',
+      title: 'Array reply',
+      status: 'open',
+      priority: 2,
+      labels: ['alpha']
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-7' ? [current] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const sendFn = vi.fn(async () => [{ ...current, labels: ['beta'] }]);
+
+    const view = createDetailView(mount, sendFn, undefined, stores);
+    await view.load('UI-7');
+
+    const input = /** @type {HTMLInputElement} */ (
+      mount.querySelector('.labels input')
+    );
+    input.value = 'beta';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+    );
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+
+    expect(mount.querySelector('h2 .editable')?.textContent).toBe(
+      'Array reply'
+    );
+    expect(mount.querySelectorAll('.labels .badge').length).toBe(1);
+  });
 });

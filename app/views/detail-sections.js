@@ -1,6 +1,7 @@
 // Detail section templates: dependency lists, editable text sections,
 // labels, and comments. Bound to the detail view's event handlers.
 import { html } from 'lit-html';
+import { live } from 'lit-html/directives/live.js';
 import { parseView } from '../router.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { renderMarkdown } from '../utils/markdown.js';
@@ -374,7 +375,7 @@ export function createDetailSections(handlers) {
           type="text"
           placeholder="Label"
           size="12"
-          .value=${ui.new_label_text}
+          .value=${live(ui.new_label_text)}
           @input=${onLabelInput}
           @keydown=${onLabelKeydown}
         />
@@ -413,7 +414,7 @@ export function createDetailSections(handlers) {
         <textarea
           placeholder="Add a comment... (Ctrl+Enter to submit)"
           rows="3"
-          .value=${ui.comment_text}
+          .value=${live(ui.comment_text)}
           @input=${onCommentInput}
           @keydown=${onCommentKeydown}
           ?disabled=${ui.comment_pending}

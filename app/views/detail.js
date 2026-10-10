@@ -132,6 +132,35 @@ export function createDetailView(
   let comment_pending = false;
 
   /**
+   * Apply a mutation reply payload to `current`.
+   *
+   * Reply payloads are issue objects re-fetched via `bd show`, which reports
+   * no `comments` array (only `comment_count`), so previously loaded comments
+   * are carried over to keep the section from flashing empty until the next
+   * subscription push. Arrays and non-objects are rejected: replacing `current`
+   * with a malformed payload blanks the whole view.
+   *
+   * @param {unknown} updated - Mutation reply payload.
+   * @returns {boolean} true when `current` was replaced.
+   */
+  function applyIssueUpdate(updated) {
+    if (!updated || typeof updated !== 'object' || Array.isArray(updated)) {
+      return false;
+    }
+    const prev = current;
+    current = /** @type {IssueDetail} */ (updated);
+    if (
+      prev &&
+      /** @type {any} */ (current).comments === undefined &&
+      /** @type {any} */ (prev).comments !== undefined
+    ) {
+      /** @type {any} */ (current).comments = /** @type {any} */ (
+        prev
+      ).comments;
+    }
+    return true;
+  }
+  /**
    * Shared implementation for the destructive-action confirmation dialogs
    * (delete issue, remove dependency/dependent). Each instance owns one
    * lazily created dialog element and renders its content on open.
@@ -369,8 +398,7 @@ export function createDetailView(
         id: current.id,
         label: text
       });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
+      if (applyIssueUpdate(updated)) {
         new_label_text = '';
         doRender();
       }
@@ -396,8 +424,7 @@ export function createDetailView(
         id: current.id,
         label
       });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
+      if (applyIssueUpdate(updated)) {
         doRender();
       }
     } catch (err) {
@@ -431,8 +458,7 @@ export function createDetailView(
         id: current.id,
         status: next
       });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
+      if (applyIssueUpdate(updated)) {
         doRender();
       }
     } catch (err) {
@@ -468,8 +494,7 @@ export function createDetailView(
         id: current.id,
         priority: next
       });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
+      if (applyIssueUpdate(updated)) {
         doRender();
       }
     } catch (err) {
@@ -555,8 +580,7 @@ export function createDetailView(
           field,
           value: next
         });
-        if (updated && typeof updated === 'object') {
-          current = /** @type {IssueDetail} */ (updated);
+        if (applyIssueUpdate(updated)) {
           editing_text[field] = false;
           doRender();
         }
@@ -653,8 +677,7 @@ export function createDetailView(
       try {
         log('save %s %s → %s', field, String(current.id), next);
         const updated = await spec.send(current.id, next);
-        if (updated && typeof updated === 'object') {
-          current = /** @type {IssueDetail} */ (updated);
+        if (applyIssueUpdate(updated)) {
           set_editing(false);
         }
       } catch (err) {
@@ -846,8 +869,7 @@ export function createDetailView(
           b: did,
           view_id: current.id
         });
-        if (updated && typeof updated === 'object') {
-          current = /** @type {IssueDetail} */ (updated);
+        if (applyIssueUpdate(updated)) {
           doRender();
         }
       } else {
@@ -856,8 +878,7 @@ export function createDetailView(
           b: current.id,
           view_id: current.id
         });
-        if (updated && typeof updated === 'object') {
-          current = /** @type {IssueDetail} */ (updated);
+        if (applyIssueUpdate(updated)) {
           doRender();
         }
       }
@@ -926,8 +947,7 @@ export function createDetailView(
             b: target,
             view_id: current.id
           });
-          if (updated && typeof updated === 'object') {
-            current = /** @type {IssueDetail} */ (updated);
+          if (applyIssueUpdate(updated)) {
             doRender();
           }
         } else {
@@ -936,8 +956,7 @@ export function createDetailView(
             b: current.id,
             view_id: current.id
           });
-          if (updated && typeof updated === 'object') {
-            current = /** @type {IssueDetail} */ (updated);
+          if (applyIssueUpdate(updated)) {
             doRender();
           }
         }

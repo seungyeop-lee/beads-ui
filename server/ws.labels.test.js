@@ -47,9 +47,11 @@ describe('ws labels handlers', () => {
     const rb = /** @type {import('vitest').Mock} */ (runBd);
     const rj = /** @type {import('vitest').Mock} */ (runBdJson);
     rb.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    // bd show --json returns an array (verified on bd 1.3.1); the reply
+    // contract is the unwrapped issue object.
     rj.mockResolvedValueOnce({
       code: 0,
-      stdoutJson: { id: 'UI-1', labels: ['frontend'] }
+      stdoutJson: [{ id: 'UI-1', labels: ['frontend'] }]
     });
 
     const ws = makeStubSocket();
@@ -77,7 +79,7 @@ describe('ws labels handlers', () => {
     rb.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
     rj.mockResolvedValueOnce({
       code: 0,
-      stdoutJson: { id: 'UI-1', labels: [] }
+      stdoutJson: [{ id: 'UI-1', labels: [] }]
     });
 
     const ws = makeStubSocket();
@@ -97,5 +99,28 @@ describe('ws labels handlers', () => {
     const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
     expect(obj.ok).toBe(true);
     expect(obj.payload && obj.payload.id).toBe('UI-1');
+  });
+
+  test('label-add replies not_found when bd show returns an empty array', async () => {
+    const rb = /** @type {import('vitest').Mock} */ (runBd);
+    const rj = /** @type {import('vitest').Mock} */ (runBdJson);
+    rb.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    rj.mockResolvedValueOnce({ code: 0, stdoutJson: [] });
+
+    const ws = makeStubSocket();
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(
+        JSON.stringify({
+          id: 'c',
+          type: /** @type {any} */ ('label-add'),
+          payload: { id: 'UI-404', label: 'ghost' }
+        })
+      )
+    );
+
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(false);
+    expect(obj.error.code).toBe('not_found');
   });
 });

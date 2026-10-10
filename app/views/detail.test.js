@@ -354,6 +354,11 @@ describe('views/detail', () => {
     expect(calls.length).toBe(1);
     expect(calls[0].type).toBe('add-comment');
     expect(calls[0].payload).toEqual({ id: 'UI-101', text: 'Test comment' });
+    expect(
+      /** @type {HTMLTextAreaElement} */ (
+        mount.querySelector('.comment-input textarea')
+      ).value
+    ).toBe('');
   });
 
   test('fetches comments on load when not in snapshot', async () => {

@@ -48,7 +48,16 @@ export async function runIssueMutation(
     );
     return;
   }
-  ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
+  // `bd show --json` returns an array of issues; the reply contract is the
+  // updated issue object itself (see app/protocol.md).
+  const out = Array.isArray(shown.stdoutJson)
+    ? shown.stdoutJson[0]
+    : shown.stdoutJson;
+  if (!out) {
+    ws.send(JSON.stringify(makeError(req, 'not_found', 'issue not found')));
+    return;
+  }
+  ws.send(JSON.stringify(makeOk(req, out)));
   try {
     triggerMutationRefreshOnce();
   } catch {
