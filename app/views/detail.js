@@ -1,75 +1,12 @@
 // Issue Detail view implementation (lit-html based)
 import { html, render } from 'lit-html';
 import { parseView } from '../router.js';
-import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
-import { renderMarkdown } from '../utils/markdown.js';
-import { emojiForPriority } from '../utils/priority-badge.js';
-import { priority_levels } from '../utils/priority.js';
-import { statusLabel } from '../utils/status.js';
 import { showToast } from '../utils/toast.js';
-import { createTypeBadge } from '../utils/type-badge.js';
+import { createDetailTemplate } from './detail-template.js';
 
-/**
- * Format a date for display. Accepts ISO string or epoch ms.
- *
- * @param {string|number|null} [value]
- * @returns {string}
- */
-function formatCommentDate(value) {
-  if (value === undefined || value === null || value === '') return '';
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '';
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch {
-    return String(value);
-  }
-}
-
-/**
- * @typedef {Object} Dependency
- * @property {string} id
- * @property {string} [title]
- * @property {string} [status]
- * @property {number} [priority]
- * @property {string} [issue_type]
- */
-
-/**
- * @typedef {Object} Comment
- * @property {number} id
- * @property {string} [author]
- * @property {string} text
- * @property {string} [created_at]
- */
-
-/**
- * @typedef {Object} IssueDetail
- * @property {string} id
- * @property {string} [title]
- * @property {string} [description]
- * @property {string} [design]
- * @property {string} [acceptance]
- * @property {string} [notes]
- * @property {string} [status]
- * @property {(string|null)} [close_reason]
- * @property {string} [assignee]
- * @property {number} [priority]
- * @property {string[]} [labels]
- * @property {Dependency[]} [dependencies]
- * @property {Dependency[]} [dependents]
- * @property {Comment[]} [comments]
- * @property {number} [created_at]
- * @property {number} [updated_at]
- * @property {(number|null)} [closed_at]
- */
+/** @typedef {import('./detail-template.js').IssueDetail} IssueDetail */
+/** @typedef {import('./detail-template.js').Dependency} Dependency */
 
 /**
  * Wrap a click-to-edit handler so a click that ends a drag text selection
@@ -152,18 +89,18 @@ export function createDetailView(
   let current_id = null;
   /** @type {boolean} */
   let pending = false;
-  /** @type {boolean} */
-  let edit_title = false;
-  /** @type {boolean} */
-  let edit_desc = false;
-  /** @type {boolean} */
-  let edit_design = false;
-  /** @type {boolean} */
-  let edit_notes = false;
-  /** @type {boolean} */
-  let edit_accept = false;
-  /** @type {boolean} */
-  let edit_assignee = false;
+  /** @type {Record<'title'|'assignee', boolean>} */
+  const editing_inline = {
+    title: false,
+    assignee: false
+  };
+  /** @type {Record<'description'|'design'|'notes'|'acceptance', boolean>} */
+  const editing_text = {
+    description: false,
+    design: false,
+    notes: false,
+    acceptance: false
+  };
   /** @type {string} */
   let new_label_text = '';
   /** @type {string} */
@@ -171,30 +108,82 @@ export function createDetailView(
   /** @type {boolean} */
   let comment_pending = false;
 
-  /** @type {HTMLDialogElement | null} */
-  let delete_dialog = null;
-  /** @type {HTMLDialogElement | null} */
-  let dep_remove_dialog = null;
+  /**
+   * Shared implementation for the destructive-action confirmation dialogs
+   * (delete issue, remove dependency/dependent). Each instance owns one
+   * lazily created dialog element and renders its content on open.
+   *
+   * @param {string} id - Dialog element id.
+   * @param {string} button_id - Prefix of the cancel/confirm button ids.
+   */
+  function makeConfirmDialog(id, button_id) {
+    /** @type {HTMLDialogElement | null} */
+    let dialog = null;
 
-  function ensureDeleteDialog() {
-    if (delete_dialog) return delete_dialog;
-    delete_dialog = document.createElement('dialog');
-    delete_dialog.id = 'delete-confirm-dialog';
-    delete_dialog.setAttribute('role', 'alertdialog');
-    delete_dialog.setAttribute('aria-modal', 'true');
-    document.body.appendChild(delete_dialog);
-    return delete_dialog;
+    function ensure() {
+      if (dialog) return dialog;
+      const el = document.createElement('dialog');
+      el.id = id;
+      el.setAttribute('role', 'alertdialog');
+      el.setAttribute('aria-modal', 'true');
+      el.addEventListener('cancel', (ev) => {
+        ev.preventDefault();
+        closeDialog(el);
+      });
+      document.body.appendChild(el);
+      dialog = el;
+      return el;
+    }
+
+    /**
+     * Render the given content and show the dialog.
+     *
+     * @param {{ title: string, message: string, confirm_label: string, on_confirm: () => Promise<void> }} spec
+     */
+    function open(spec) {
+      const el = ensure();
+      el.innerHTML = `
+        <div class="delete-confirm">
+          <h2 class="delete-confirm__title">${spec.title}</h2>
+          <p class="delete-confirm__message">
+            ${spec.message}
+          </p>
+          <div class="delete-confirm__actions">
+            <button type="button" class="btn" id="${button_id}-cancel-btn">Cancel</button>
+            <button type="button" class="btn danger" id="${button_id}-confirm-btn">${spec.confirm_label}</button>
+          </div>
+        </div>
+      `;
+      el.querySelector(`#${button_id}-cancel-btn`)?.addEventListener(
+        'click',
+        () => closeDialog(el)
+      );
+      el.querySelector(`#${button_id}-confirm-btn`)?.addEventListener(
+        'click',
+        async () => {
+          closeDialog(el);
+          await spec.on_confirm();
+        }
+      );
+      showModal(el);
+    }
+
+    /** Detach the dialog element from the document, if it was created. */
+    function destroy() {
+      if (dialog && dialog.parentNode) {
+        dialog.parentNode.removeChild(dialog);
+        dialog = null;
+      }
+    }
+
+    return { open, destroy };
   }
 
-  function ensureDepRemoveDialog() {
-    if (dep_remove_dialog) return dep_remove_dialog;
-    dep_remove_dialog = document.createElement('dialog');
-    dep_remove_dialog.id = 'dep-remove-confirm-dialog';
-    dep_remove_dialog.setAttribute('role', 'alertdialog');
-    dep_remove_dialog.setAttribute('aria-modal', 'true');
-    document.body.appendChild(dep_remove_dialog);
-    return dep_remove_dialog;
-  }
+  const delete_dialog = makeConfirmDialog('delete-confirm-dialog', 'delete');
+  const dep_remove_dialog = makeConfirmDialog(
+    'dep-remove-confirm-dialog',
+    'dep-remove'
+  );
 
   /**
    * @param {HTMLDialogElement} dialog
@@ -224,35 +213,13 @@ export function createDetailView(
 
   function openDeleteDialog() {
     if (!current) return;
-    const dialog = ensureDeleteDialog();
-    const issueId = current.id;
     const issueTitle = current.title || '(no title)';
-    dialog.innerHTML = `
-      <div class="delete-confirm">
-        <h2 class="delete-confirm__title">Delete Issue</h2>
-        <p class="delete-confirm__message">
-          Are you sure you want to delete issue <strong>${issueId}</strong> — <strong>${issueTitle}</strong>? This action cannot be undone.
-        </p>
-        <div class="delete-confirm__actions">
-          <button type="button" class="btn" id="delete-cancel-btn">Cancel</button>
-          <button type="button" class="btn danger" id="delete-confirm-btn">Delete</button>
-        </div>
-      </div>
-    `;
-    dialog
-      .querySelector('#delete-cancel-btn')
-      ?.addEventListener('click', () => closeDialog(dialog));
-    dialog
-      .querySelector('#delete-confirm-btn')
-      ?.addEventListener('click', async () => {
-        closeDialog(dialog);
-        await performDelete();
-      });
-    dialog.addEventListener('cancel', (ev) => {
-      ev.preventDefault();
-      closeDialog(dialog);
+    delete_dialog.open({
+      title: 'Delete Issue',
+      message: `Are you sure you want to delete issue <strong>${current.id}</strong> — <strong>${issueTitle}</strong>? This action cannot be undone.`,
+      confirm_label: 'Delete',
+      on_confirm: performDelete
     });
-    showModal(dialog);
   }
 
   /**
@@ -261,35 +228,14 @@ export function createDetailView(
    */
   function openDepRemoveDialog(did, title) {
     if (!current) return;
-    const dialog = ensureDepRemoveDialog();
     const direction =
       title === 'Dependencies' ? 'dependency on' : 'dependent from';
-    dialog.innerHTML = `
-      <div class="delete-confirm">
-        <h2 class="delete-confirm__title">Remove ${title.slice(0, -1).replace('ies', 'y')}</h2>
-        <p class="delete-confirm__message">
-          Remove ${direction} <strong>${did}</strong>?
-        </p>
-        <div class="delete-confirm__actions">
-          <button type="button" class="btn" id="dep-remove-cancel-btn">Cancel</button>
-          <button type="button" class="btn danger" id="dep-remove-confirm-btn">Remove</button>
-        </div>
-      </div>
-    `;
-    dialog
-      .querySelector('#dep-remove-cancel-btn')
-      ?.addEventListener('click', () => closeDialog(dialog));
-    dialog
-      .querySelector('#dep-remove-confirm-btn')
-      ?.addEventListener('click', async () => {
-        closeDialog(dialog);
-        await performDepRemove(did, title);
-      });
-    dialog.addEventListener('cancel', (ev) => {
-      ev.preventDefault();
-      closeDialog(dialog);
+    dep_remove_dialog.open({
+      title: `Remove ${title.slice(0, -1).replace('ies', 'y')}`,
+      message: `Remove ${direction} <strong>${did}</strong>?`,
+      confirm_label: 'Remove',
+      on_confirm: () => performDepRemove(did, title)
     });
-    showModal(dialog);
   }
 
   async function performDelete() {
@@ -316,13 +262,6 @@ export function createDetailView(
     ev.stopPropagation();
     ev.preventDefault();
     openDeleteDialog();
-  }
-
-  /** @param {string} id */
-  function issueHref(id) {
-    /** @type {'issues'|'epics'|'board'} */
-    const view = parseView(window.location.hash || '');
-    return issueHashFor(view, id);
   }
 
   /**
@@ -374,129 +313,6 @@ export function createDetailView(
   }
 
   // Handlers
-  const onTitleSpanClick = () => {
-    edit_title = true;
-    doRender();
-  };
-  /**
-   * @param {KeyboardEvent} ev
-   */
-  const onTitleKeydown = (ev) => {
-    if (ev.key === 'Enter') {
-      edit_title = true;
-      doRender();
-    } else if (ev.key === 'Escape') {
-      edit_title = false;
-      doRender();
-    }
-  };
-  const onTitleSave = async () => {
-    if (!current || pending) {
-      return;
-    }
-    const input = /** @type {HTMLInputElement|null} */ (
-      mount_element.querySelector('h2 input')
-    );
-    const prev = current.title || '';
-    const next = input ? input.value : '';
-    if (next === prev) {
-      edit_title = false;
-      doRender();
-      return;
-    }
-    pending = true;
-    if (input) {
-      input.disabled = true;
-    }
-    try {
-      log('save title %s → %s', String(current.id), next);
-      const updated = await sendFn('edit-text', {
-        id: current.id,
-        field: 'title',
-        value: next
-      });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
-        edit_title = false;
-        doRender();
-      }
-    } catch (err) {
-      log('save title failed %s %o', String(current.id), err);
-      current.title = prev;
-      edit_title = false;
-      doRender();
-      showToast('Failed to save title', 'error');
-    } finally {
-      pending = false;
-    }
-  };
-  const onTitleCancel = () => {
-    edit_title = false;
-    doRender();
-  };
-  // Assignee inline edit handlers
-  const onAssigneeSpanClick = () => {
-    edit_assignee = true;
-    doRender();
-  };
-  /**
-   * @param {KeyboardEvent} ev
-   */
-  const onAssigneeKeydown = (ev) => {
-    if (ev.key === 'Enter') {
-      ev.preventDefault();
-      edit_assignee = true;
-      doRender();
-    } else if (ev.key === 'Escape') {
-      ev.preventDefault();
-      edit_assignee = false;
-      doRender();
-    }
-  };
-  const onAssigneeSave = async () => {
-    if (!current || pending) {
-      return;
-    }
-    const input = /** @type {HTMLInputElement|null} */ (
-      mount_element.querySelector('#detail-root .prop.assignee input')
-    );
-    const prev = current?.assignee ?? '';
-    const next = input?.value ?? '';
-    if (next === prev) {
-      edit_assignee = false;
-      doRender();
-      return;
-    }
-    pending = true;
-    if (input) {
-      input.disabled = true;
-    }
-    try {
-      log('save assignee %s → %s', String(current.id), next);
-      const updated = await sendFn('update-assignee', {
-        id: current.id,
-        assignee: next
-      });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
-        edit_assignee = false;
-        doRender();
-      }
-    } catch (err) {
-      log('save assignee failed %s %o', String(current.id), err);
-      // revert visually
-      current.assignee = prev;
-      edit_assignee = false;
-      doRender();
-      showToast('Failed to update assignee', 'error');
-    } finally {
-      pending = false;
-    }
-  };
-  const onAssigneeCancel = () => {
-    edit_assignee = false;
-    doRender();
-  };
 
   // Labels handlers
   /**
@@ -641,298 +457,213 @@ export function createDetailView(
   };
 
   /**
-   * @param {Event} ev
+   * Build the inline edit handlers for one long-text section (description,
+   * design, notes, acceptance).
+   *
+   * @param {'description'|'design'|'notes'|'acceptance'} field - Issue field and template section class.
+   * @param {{ focus_on_edit?: boolean }} [options]
    */
-  const onDescEdit = (ev) => {
-    enterTextEdit(ev, 'description', () => {
-      edit_desc = true;
-    });
-  };
-  /**
-   * @param {KeyboardEvent} ev
-   */
-  const onDescKeydown = (ev) => {
-    if (ev.key === 'Escape') {
-      edit_desc = false;
-      doRender();
-    } else if (ev.key === 'Enter' && ev.ctrlKey) {
-      const btn = /** @type {HTMLButtonElement|null} */ (
-        mount_element.querySelector('#detail-root .editable-actions button')
-      );
-      if (btn) {
-        btn.click();
-      }
-    }
-  };
-  const onDescSave = async () => {
-    if (!current || pending) {
-      return;
-    }
-    const ta = /** @type {HTMLTextAreaElement|null} */ (
-      mount_element.querySelector('#detail-root textarea')
-    );
-    const prev = current.description || '';
-    const next = ta ? ta.value : '';
-    if (next === prev) {
-      edit_desc = false;
-      doRender();
-      return;
-    }
-    pending = true;
-    if (ta) {
-      ta.disabled = true;
-    }
-    try {
-      log('save description %s', String(current?.id || ''));
-      const updated = await sendFn('edit-text', {
-        id: current.id,
-        field: 'description',
-        value: next
+  function makeTextSectionHandlers(field, options = {}) {
+    /**
+     * @param {Event} ev
+     */
+    const onEdit = (ev) => {
+      enterTextEdit(ev, field, () => {
+        editing_text[field] = true;
       });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
-        edit_desc = false;
-        doRender();
+      if (options.focus_on_edit) {
+        try {
+          const ta = /** @type {HTMLTextAreaElement|null} */ (
+            mount_element.querySelector(`#detail-root .${field} textarea`)
+          );
+          if (ta) {
+            ta.focus();
+          }
+        } catch (err) {
+          log('focus %s textarea failed %o', field, err);
+        }
       }
-    } catch (err) {
-      log('save description failed %s %o', String(current?.id || ''), err);
-      current.description = prev;
-      edit_desc = false;
-      doRender();
-      showToast('Failed to save description', 'error');
-    } finally {
-      pending = false;
-    }
-  };
-  const onDescCancel = () => {
-    edit_desc = false;
-    doRender();
-  };
-
-  // Design inline edit handlers (same UX as Description)
-  /**
-   * @param {Event} ev
-   */
-  const onDesignEdit = (ev) => {
-    enterTextEdit(ev, 'design', () => {
-      edit_design = true;
-    });
-    try {
+    };
+    /**
+     * @param {KeyboardEvent} ev
+     */
+    const onKeydown = (ev) => {
+      if (ev.key === 'Escape') {
+        editing_text[field] = false;
+        doRender();
+      } else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+        const btn = /** @type {HTMLButtonElement|null} */ (
+          mount_element.querySelector(
+            `#detail-root .${field} .editable-actions button`
+          )
+        );
+        if (btn) {
+          btn.click();
+        }
+      }
+    };
+    const onSave = async () => {
+      if (!current || pending) {
+        return;
+      }
       const ta = /** @type {HTMLTextAreaElement|null} */ (
-        mount_element.querySelector('#detail-root .design textarea')
+        mount_element.querySelector(`#detail-root .${field} textarea`)
       );
+      const prev = String(current[field] || '');
+      const next = ta ? ta.value : '';
+      if (next === prev) {
+        editing_text[field] = false;
+        doRender();
+        return;
+      }
+      pending = true;
       if (ta) {
-        ta.focus();
+        ta.disabled = true;
       }
-    } catch (err) {
-      log('focus design textarea failed %o', err);
-    }
-  };
-  /**
-   * @param {KeyboardEvent} ev
-   */
-  const onDesignKeydown = (ev) => {
-    if (ev.key === 'Escape') {
-      edit_design = false;
-      doRender();
-    } else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-      const btn = /** @type {HTMLButtonElement|null} */ (
-        mount_element.querySelector(
-          '#detail-root .design .editable-actions button'
-        )
-      );
-      if (btn) {
-        btn.click();
-      }
-    }
-  };
-  const onDesignSave = async () => {
-    if (!current || pending) {
-      return;
-    }
-    const ta = /** @type {HTMLTextAreaElement|null} */ (
-      mount_element.querySelector('#detail-root .design textarea')
-    );
-    const prev = current.design || '';
-    const next = ta ? ta.value : '';
-    if (next === prev) {
-      edit_design = false;
-      doRender();
-      return;
-    }
-    pending = true;
-    if (ta) {
-      ta.disabled = true;
-    }
-    try {
-      log('save design %s', String(current?.id || ''));
-      const updated = await sendFn('edit-text', {
-        id: current.id,
-        field: 'design',
-        value: next
-      });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
-        edit_design = false;
+      try {
+        log('save %s %s', field, String(current?.id || ''));
+        const updated = await sendFn('edit-text', {
+          id: current.id,
+          field,
+          value: next
+        });
+        if (updated && typeof updated === 'object') {
+          current = /** @type {IssueDetail} */ (updated);
+          editing_text[field] = false;
+          doRender();
+        }
+      } catch (err) {
+        log('save %s failed %s %o', field, String(current?.id || ''), err);
+        current[field] = prev;
+        editing_text[field] = false;
         doRender();
+        showToast(`Failed to save ${field}`, 'error');
+      } finally {
+        pending = false;
       }
-    } catch (err) {
-      log('save design failed %s %o', String(current?.id || ''), err);
-      current.design = prev;
-      edit_design = false;
+    };
+    const onCancel = () => {
+      editing_text[field] = false;
       doRender();
-      showToast('Failed to save design', 'error');
-    } finally {
-      pending = false;
-    }
-  };
-  const onDesignCancel = () => {
-    edit_design = false;
-    doRender();
-  };
+    };
+    return { onEdit, onKeydown, onSave, onCancel };
+  }
 
-  // Notes inline edit handlers
-  /**
-   * @param {Event} ev
-   */
-  const onNotesEdit = (ev) => {
-    enterTextEdit(ev, 'notes', () => {
-      edit_notes = true;
-    });
-  };
-  /**
-   * @param {KeyboardEvent} ev
-   */
-  const onNotesKeydown = (ev) => {
-    if (ev.key === 'Escape') {
-      edit_notes = false;
-      doRender();
-    } else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-      const btn = /** @type {HTMLButtonElement|null} */ (
-        mount_element.querySelector(
-          '#detail-root .notes .editable-actions button'
-        )
-      );
-      if (btn) {
-        btn.click();
-      }
-    }
-  };
-  const onNotesSave = async () => {
-    if (!current || pending) {
-      return;
-    }
-    const ta = /** @type {HTMLTextAreaElement|null} */ (
-      mount_element.querySelector('#detail-root .notes textarea')
-    );
-    const prev = current.notes || '';
-    const next = ta ? ta.value : '';
-    if (next === prev) {
-      edit_notes = false;
-      doRender();
-      return;
-    }
-    pending = true;
-    if (ta) {
-      ta.disabled = true;
-    }
-    try {
-      log('save notes %s', String(current?.id || ''));
-      const updated = await sendFn('edit-text', {
-        id: current.id,
-        field: 'notes',
-        value: next
-      });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
-        edit_notes = false;
-        doRender();
-      }
-    } catch (err) {
-      log('save notes failed %s %o', String(current?.id || ''), err);
-      current.notes = prev;
-      edit_notes = false;
-      doRender();
-      showToast('Failed to save notes', 'error');
-    } finally {
-      pending = false;
-    }
-  };
-  const onNotesCancel = () => {
-    edit_notes = false;
-    doRender();
-  };
+  const {
+    onEdit: onDescEdit,
+    onKeydown: onDescKeydown,
+    onSave: onDescSave,
+    onCancel: onDescCancel
+  } = makeTextSectionHandlers('description');
+  const {
+    onEdit: onDesignEdit,
+    onKeydown: onDesignKeydown,
+    onSave: onDesignSave,
+    onCancel: onDesignCancel
+  } = makeTextSectionHandlers('design', { focus_on_edit: true });
+  const {
+    onEdit: onNotesEdit,
+    onKeydown: onNotesKeydown,
+    onSave: onNotesSave,
+    onCancel: onNotesCancel
+  } = makeTextSectionHandlers('notes');
+  const {
+    onEdit: onAcceptEdit,
+    onKeydown: onAcceptKeydown,
+    onSave: onAcceptSave,
+    onCancel: onAcceptCancel
+  } = makeTextSectionHandlers('acceptance');
 
   /**
-   * @param {Event} ev
+   * Build the inline edit handlers for one single-line issue field (title,
+   * assignee): the read-mode span starts editing, the input saves or cancels.
+   *
+   * @param {'title'|'assignee'} field - Issue field and editing_inline key.
+   * @param {{ input_selector: string, send: (id: string, value: string) => Promise<unknown>, toast_message: string }} spec
    */
-  const onAcceptEdit = (ev) => {
-    enterTextEdit(ev, 'acceptance', () => {
-      edit_accept = true;
-    });
-  };
-  /**
-   * @param {KeyboardEvent} ev
-   */
-  const onAcceptKeydown = (ev) => {
-    if (ev.key === 'Escape') {
-      edit_accept = false;
+  function makeInlineFieldHandlers(field, spec) {
+    /**
+     * @param {boolean} on
+     */
+    const set_editing = (on) => {
+      editing_inline[field] = on;
       doRender();
-    } else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-      const btn = /** @type {HTMLButtonElement|null} */ (
-        mount_element.querySelector(
-          '#detail-root .acceptance .editable-actions button'
-        )
+    };
+
+    const onSpanClick = () => set_editing(true);
+
+    /**
+     * @param {KeyboardEvent} ev
+     */
+    const onKeydown = (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        set_editing(true);
+      } else if (ev.key === 'Escape') {
+        ev.preventDefault();
+        set_editing(false);
+      }
+    };
+
+    const onCancel = () => set_editing(false);
+
+    const onSave = async () => {
+      if (!current || pending) {
+        return;
+      }
+      const input = /** @type {HTMLInputElement|null} */ (
+        mount_element.querySelector(spec.input_selector)
       );
-      if (btn) {
-        btn.click();
+      const prev = String(current[field] ?? '');
+      const next = input ? input.value : '';
+      if (next === prev) {
+        set_editing(false);
+        return;
       }
-    }
-  };
-  const onAcceptSave = async () => {
-    if (!current || pending) {
-      return;
-    }
-    const ta = /** @type {HTMLTextAreaElement|null} */ (
-      mount_element.querySelector('#detail-root .acceptance textarea')
-    );
-    const prev = current.acceptance || '';
-    const next = ta ? ta.value : '';
-    if (next === prev) {
-      edit_accept = false;
-      doRender();
-      return;
-    }
-    pending = true;
-    if (ta) {
-      ta.disabled = true;
-    }
-    try {
-      log('save acceptance %s', String(current?.id || ''));
-      const updated = await sendFn('edit-text', {
-        id: current.id,
-        field: 'acceptance',
-        value: next
-      });
-      if (updated && typeof updated === 'object') {
-        current = /** @type {IssueDetail} */ (updated);
-        edit_accept = false;
-        doRender();
+      pending = true;
+      if (input) {
+        input.disabled = true;
       }
-    } catch (err) {
-      log('save acceptance failed %s %o', String(current?.id || ''), err);
-      current.acceptance = prev;
-      edit_accept = false;
-      doRender();
-      showToast('Failed to save acceptance', 'error');
-    } finally {
-      pending = false;
-    }
-  };
-  const onAcceptCancel = () => {
-    edit_accept = false;
-    doRender();
-  };
+      try {
+        log('save %s %s → %s', field, String(current.id), next);
+        const updated = await spec.send(current.id, next);
+        if (updated && typeof updated === 'object') {
+          current = /** @type {IssueDetail} */ (updated);
+          set_editing(false);
+        }
+      } catch (err) {
+        log('save %s failed %s %o', field, String(current.id), err);
+        current[field] = prev;
+        set_editing(false);
+        showToast(spec.toast_message, 'error');
+      } finally {
+        pending = false;
+      }
+    };
+
+    return { onSpanClick, onKeydown, onSave, onCancel };
+  }
+
+  const {
+    onSpanClick: onTitleSpanClick,
+    onKeydown: onTitleKeydown,
+    onSave: onTitleSave,
+    onCancel: onTitleCancel
+  } = makeInlineFieldHandlers('title', {
+    input_selector: 'h2 input',
+    send: (id, value) => sendFn('edit-text', { id, field: 'title', value }),
+    toast_message: 'Failed to save title'
+  });
+  const {
+    onSpanClick: onAssigneeSpanClick,
+    onKeydown: onAssigneeKeydown,
+    onSave: onAssigneeSave,
+    onCancel: onAssigneeCancel
+  } = makeInlineFieldHandlers('assignee', {
+    input_selector: '#detail-root .prop.assignee input',
+    send: (id, value) => sendFn('update-assignee', { id, assignee: value }),
+    toast_message: 'Failed to update assignee'
+  });
 
   // Comment input handlers
   /**
@@ -986,487 +717,52 @@ export function createDetailView(
     }
   };
 
-  /**
-   * @param {'Dependencies'|'Dependents'} title
-   * @param {Dependency[]} items
-   */
-  function depsSection(title, items) {
-    const test_id =
-      title === 'Dependencies' ? 'add-dependency' : 'add-dependent';
-    return html`
-      <div class="props-card">
-        <div>
-          <div class="props-card__title">${title}</div>
-        </div>
-        <ul>
-          ${!items || items.length === 0
-            ? null
-            : items.map((dep) => {
-                const did = dep.id;
-                const href = issueHref(did);
-                return html`<li
-                  data-href=${href}
-                  @click=${() => navigateFn(href)}
-                >
-                  ${createTypeBadge(dep.issue_type || '')}
-                  <span class="text-truncate">${dep.title || ''}</span>
-                  <button
-                    aria-label=${`Remove dependency ${did}`}
-                    @click=${makeDepRemoveClick(did, title)}
-                  >
-                    ×
-                  </button>
-                </li>`;
-              })}
-        </ul>
-        <div class="props-card__footer">
-          <input type="text" placeholder="Issue ID" data-testid=${test_id} />
-          <button @click=${makeDepAddClick(items, title)}>Add</button>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * @param {IssueDetail} issue
-   */
-  function detailTemplate(issue) {
-    const title_zone = edit_title
-      ? html`<div class="detail-title">
-          <h2>
-            <input
-              type="text"
-              aria-label="Edit title"
-              .value=${issue.title || ''}
-              @keydown=${onTitleInputKeydown}
-            />
-            <button @click=${onTitleSave}>Save</button>
-            <button @click=${onTitleCancel}>Cancel</button>
-          </h2>
-        </div>`
-      : html`<div class="detail-title">
-          <h2>
-            <span
-              class="editable"
-              tabindex="0"
-              role="button"
-              aria-label="Edit title"
-              @click=${onTitleSpanClick}
-              @keydown=${onTitleKeydown}
-              >${issue.title || ''}</span
-            >
-          </h2>
-        </div>`;
-
-    const status_select = html`<select
-      class=${`badge-select badge--status is-${issue.status || 'open'}`}
-      @change=${onStatusChange}
-      .value=${issue.status || 'open'}
-      ?disabled=${pending}
-    >
-      ${(() => {
-        const cur = String(issue.status || 'open');
-        return ['open', 'in_progress', 'closed'].map(
-          (s) =>
-            html`<option value=${s} ?selected=${cur === s}>
-              ${statusLabel(s)}
-            </option>`
-        );
-      })()}
-    </select>`;
-
-    const priority_select = html`<select
-      class=${`badge-select badge--priority is-p${String(
-        typeof issue.priority === 'number' ? issue.priority : 2
-      )}`}
-      @change=${onPriorityChange}
-      .value=${String(typeof issue.priority === 'number' ? issue.priority : 2)}
-      ?disabled=${pending}
-    >
-      ${(() => {
-        const cur = String(
-          typeof issue.priority === 'number' ? issue.priority : 2
-        );
-        return priority_levels.map(
-          (p, i) =>
-            html`<option value=${String(i)} ?selected=${cur === String(i)}>
-              ${emojiForPriority(i)} ${p}
-            </option>`
-        );
-      })()}
-    </select>`;
-
-    const desc_block = edit_desc
-      ? html`<div class="description">
-          <textarea
-            @keydown=${onDescKeydown}
-            @input=${onEditorInput}
-            .value=${issue.description || ''}
-            rows="8"
-            style="width:100%"
-          ></textarea>
-          <div class="editable-actions">
-            <button @click=${onDescSave}>Save</button>
-            <button @click=${onDescCancel}>Cancel</button>
-          </div>
-        </div>`
-      : html`<div
-          class="md editable"
-          tabindex="0"
-          role="button"
-          aria-label="Edit description"
-          @click=${editUnlessSelecting(onDescEdit)}
-          @keydown=${onDescEditableKeydown}
-        >
-          ${(() => {
-            const text = issue.description || '';
-            if (text.trim() === '') {
-              return html`<div class="muted">Description</div>`;
-            }
-            return renderMarkdown(text);
-          })()}
-        </div>`;
-
-    // Normalize acceptance text: prefer issue.acceptance, fallback to acceptance_criteria from bd
-    const acceptance_text = (() => {
-      /** @type {any} */
-      const any_issue = issue;
-      const raw = String(
-        issue.acceptance || any_issue.acceptance_criteria || ''
-      );
-      return raw;
-    })();
-
-    const accept_block = edit_accept
-      ? html`<div class="acceptance">
-          ${acceptance_text.trim().length > 0
-            ? html`<div class="props-card__title">Acceptance Criteria</div>`
-            : ''}
-          <textarea
-            @keydown=${onAcceptKeydown}
-            @input=${onEditorInput}
-            .value=${acceptance_text}
-            rows="6"
-            style="width:100%"
-          ></textarea>
-          <div class="editable-actions">
-            <button @click=${onAcceptSave}>Save</button>
-            <button @click=${onAcceptCancel}>Cancel</button>
-          </div>
-        </div>`
-      : html`<div class="acceptance">
-          ${(() => {
-            const text = acceptance_text;
-            const has = text.trim().length > 0;
-            return html`${has
-                ? html`<div class="props-card__title">Acceptance Criteria</div>`
-                : ''}
-              <div
-                class="md editable"
-                tabindex="0"
-                role="button"
-                aria-label="Edit acceptance criteria"
-                @click=${editUnlessSelecting(onAcceptEdit)}
-                @keydown=${onAcceptEditableKeydown}
-              >
-                ${has
-                  ? renderMarkdown(text)
-                  : html`<div class="muted">Add acceptance criteria…</div>`}
-              </div>`;
-          })()}
-        </div>`;
-
-    // Notes: editable in-place similar to Description
-    const notes_text = String(issue.notes || '');
-    const notes_block = edit_notes
-      ? html`<div class="notes">
-          ${notes_text.trim().length > 0
-            ? html`<div class="props-card__title">Notes</div>`
-            : ''}
-          <textarea
-            @keydown=${onNotesKeydown}
-            @input=${onEditorInput}
-            .value=${notes_text}
-            rows="6"
-            style="width:100%"
-          ></textarea>
-          <div class="editable-actions">
-            <button @click=${onNotesSave}>Save</button>
-            <button @click=${onNotesCancel}>Cancel</button>
-          </div>
-        </div>`
-      : html`<div class="notes">
-          ${(() => {
-            const text = notes_text;
-            const has = text.trim().length > 0;
-            return html`${has
-                ? html`<div class="props-card__title">Notes</div>`
-                : ''}
-              <div
-                class="md editable"
-                tabindex="0"
-                role="button"
-                aria-label="Edit notes"
-                @click=${editUnlessSelecting(onNotesEdit)}
-                @keydown=${onNotesEditableKeydown}
-              >
-                ${has
-                  ? renderMarkdown(text)
-                  : html`<div class="muted">Add notes…</div>`}
-              </div>`;
-          })()}
-        </div>`;
-
-    // Labels section
-    const labels = Array.isArray(issue.labels) ? issue.labels : [];
-    const labels_block = html`<div class="props-card labels">
-      <div>
-        <div class="props-card__title">Labels</div>
-      </div>
-      <ul>
-        ${labels.map(
-          (l) =>
-            html`<li>
-              <span class="badge" title=${l}
-                >${l}
-                <button
-                  class="icon-button"
-                  title="Remove label"
-                  aria-label=${'Remove label ' + l}
-                  @click=${() => onRemoveLabel(l)}
-                  style="margin-left:6px"
-                >
-                  ×
-                </button></span
-              >
-            </li>`
-        )}
-      </ul>
-      <div class="props-card__footer">
-        <input
-          type="text"
-          placeholder="Label"
-          size="12"
-          .value=${new_label_text}
-          @input=${onLabelInput}
-          @keydown=${onLabelKeydown}
-        />
-        <button @click=${onAddLabel}>Add</button>
-      </div>
-    </div>`;
-
-    // Design section block
-    const design_text = String(issue.design || '');
-    const design_block = edit_design
-      ? html`<div class="design">
-          ${design_text.trim().length > 0
-            ? html`<div class="props-card__title">Design</div>`
-            : ''}
-          <textarea
-            @keydown=${onDesignKeydown}
-            @input=${onEditorInput}
-            .value=${design_text}
-            rows="6"
-            style="width:100%"
-          ></textarea>
-          <div class="editable-actions">
-            <button @click=${onDesignSave}>Save</button>
-            <button @click=${onDesignCancel}>Cancel</button>
-          </div>
-        </div>`
-      : html`<div class="design">
-          ${(() => {
-            const text = design_text;
-            const has = text.trim().length > 0;
-            return html`${has
-                ? html`<div class="props-card__title">Design</div>`
-                : ''}
-              <div
-                class="md editable"
-                tabindex="0"
-                role="button"
-                aria-label="Edit design"
-                @click=${editUnlessSelecting(onDesignEdit)}
-                @keydown=${onDesignEditableKeydown}
-              >
-                ${has
-                  ? renderMarkdown(text)
-                  : html`<div class="muted">Add design…</div>`}
-              </div>`;
-          })()}
-        </div>`;
-
-    // Comments section
-    const comments = Array.isArray(/** @type {any} */ (issue).comments)
-      ? /** @type {Comment[]} */ (/** @type {any} */ (issue).comments)
-      : [];
-    const comments_block = html`<div class="comments">
-      <div class="props-card__title">Comments</div>
-      ${comments.length === 0
-        ? html`<div class="muted">No comments yet</div>`
-        : comments.map(
-            (c) => html`
-              <div class="comment-item">
-                <div class="comment-header">
-                  <span class="comment-author">${c.author || 'Unknown'}</span>
-                  <span class="comment-date"
-                    >${formatCommentDate(c.created_at)}</span
-                  >
-                </div>
-                <div class="comment-text">${c.text}</div>
-              </div>
-            `
-          )}
-      <div class="comment-input">
-        <textarea
-          placeholder="Add a comment... (Ctrl+Enter to submit)"
-          rows="3"
-          .value=${comment_text}
-          @input=${onCommentInput}
-          @keydown=${onCommentKeydown}
-          ?disabled=${comment_pending}
-        ></textarea>
-        <button
-          @click=${onCommentSubmit}
-          ?disabled=${comment_pending || !comment_text.trim()}
-        >
-          ${comment_pending ? 'Adding...' : 'Add Comment'}
-        </button>
-      </div>
-    </div>`;
-
-    return html`
-      <div class="panel__body" id="detail-root">
-        <div class="detail-layout">
-          <div class="detail-main">
-            ${title_zone} ${desc_block} ${design_block} ${notes_block}
-            ${accept_block} ${comments_block}
-          </div>
-          <div class="detail-side">
-            <div class="props-card">
-              <div class="props-card__header">
-                <div class="props-card__title">Properties</div>
-                <button class="delete-issue-btn" title="Delete issue" aria-label="Delete issue" @click=${onDeleteClick}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                  </svg>
-                  <span class="tooltip">Delete issue</span>
-                </button>
-              </div>
-                <div class="prop">
-                  <div class="label">Type</div>
-                  <div class="value">
-                    ${createTypeBadge(/** @type {any} */ (issue).issue_type)}
-                  </div>
-                </div>
-                <div class="prop">
-                  <div class="label">Status</div>
-                  <div class="value">${status_select}</div>
-                </div>
-                ${
-                  issue.close_reason
-                    ? html`<div class="prop">
-                        <div class="label">Close Reason</div>
-                        <div class="value">${issue.close_reason}</div>
-                      </div>`
-                    : ''
-                }
-                <div class="prop">
-                  <div class="label">Priority</div>
-                  <div class="value">${priority_select}</div>
-                </div>
-                <div class="prop assignee">
-                  <div class="label">Assignee</div>
-                  <div class="value">
-                    ${
-                      edit_assignee
-                        ? html`<input
-                              type="text"
-                              aria-label="Edit assignee"
-                              .value=${
-                                /** @type {any} */ (issue).assignee || ''
-                              }
-                              size=${Math.min(
-                                40,
-                                Math.max(12, (issue.assignee || '').length + 3)
-                              )}
-                              @keydown=${
-                                /** @param {KeyboardEvent} e */ (e) => {
-                                  if (e.key === 'Escape') {
-                                    e.preventDefault();
-                                    onAssigneeCancel();
-                                  } else if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    onAssigneeSave();
-                                  }
-                                }
-                              }
-                            />
-                            <button
-                              class="btn"
-                              style="margin-left:6px"
-                              @click=${onAssigneeSave}
-                            >
-                              Save
-                            </button>
-                            <button
-                              class="btn"
-                              style="margin-left:6px"
-                              @click=${onAssigneeCancel}
-                            >
-                              Cancel
-                            </button>`
-                        : html`${(() => {
-                            const raw = issue.assignee || '';
-                            const has = raw.trim().length > 0;
-                            const text = has ? raw : 'Unassigned';
-                            const cls = has ? 'editable' : 'editable muted';
-                            return html`<span
-                              class=${cls}
-                              tabindex="0"
-                              role="button"
-                              aria-label="Edit assignee"
-                              @click=${onAssigneeSpanClick}
-                              @keydown=${onAssigneeKeydown}
-                              >${text}</span
-                            >`;
-                          })()}`
-                    }
-                  </div>
-                </div>
-                <div class="prop">
-                  <div class="label">Created</div>
-                  <div class="value">${formatCommentDate(issue.created_at)}</div>
-                </div>
-                <div class="prop">
-                  <div class="label">Updated</div>
-                  <div class="value">${formatCommentDate(issue.updated_at)}</div>
-                </div>
-                ${
-                  issue.status === 'closed' &&
-                  issue.closed_at !== undefined &&
-                  issue.closed_at !== null
-                    ? html`<div class="prop">
-                        <div class="label">Closed</div>
-                        <div class="value">
-                          ${formatCommentDate(issue.closed_at)}
-                        </div>
-                      </div>`
-                    : ''
-                }
-              </div>
-              ${labels_block}
-              ${depsSection('Dependencies', issue.dependencies || [])}
-              ${depsSection('Dependents', issue.dependents || [])}
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
+  const detail_template = createDetailTemplate({
+    navigateFn,
+    makeDepAddClick,
+    makeDepRemoveClick,
+    editUnlessSelecting,
+    onEditorInput,
+    onTitleInputKeydown,
+    onTitleSpanClick,
+    onTitleKeydown,
+    onTitleSave,
+    onTitleCancel,
+    onStatusChange,
+    onPriorityChange,
+    onDescKeydown,
+    onDescEdit,
+    onDescSave,
+    onDescCancel,
+    onDescEditableKeydown,
+    onDesignKeydown,
+    onDesignEdit,
+    onDesignSave,
+    onDesignCancel,
+    onDesignEditableKeydown,
+    onNotesKeydown,
+    onNotesEdit,
+    onNotesSave,
+    onNotesCancel,
+    onNotesEditableKeydown,
+    onAcceptKeydown,
+    onAcceptEdit,
+    onAcceptSave,
+    onAcceptCancel,
+    onAcceptEditableKeydown,
+    onRemoveLabel,
+    onLabelInput,
+    onLabelKeydown,
+    onAddLabel,
+    onCommentInput,
+    onCommentKeydown,
+    onCommentSubmit,
+    onDeleteClick,
+    onAssigneeSpanClick,
+    onAssigneeKeydown,
+    onAssigneeSave,
+    onAssigneeCancel
+  });
 
   /**
    * Switch a markdown section into edit mode and fit its textarea to the
@@ -1495,7 +791,18 @@ export function createDetailView(
       renderPlaceholder(current_id ? 'Loading…' : 'No issue selected');
       return;
     }
-    render(detailTemplate(current), mount_element);
+    render(
+      detail_template(current, {
+        edit_title: editing_inline.title,
+        editing_text,
+        pending,
+        edit_assignee: editing_inline.assignee,
+        new_label_text,
+        comment_text,
+        comment_pending
+      }),
+      mount_element
+    );
   }
 
   /**
@@ -1619,7 +926,7 @@ export function createDetailView(
    */
   function onTitleInputKeydown(ev) {
     if (ev.key === 'Escape') {
-      edit_title = false;
+      editing_inline.title = false;
       doRender();
     } else if (ev.key === 'Enter') {
       ev.preventDefault();
@@ -1678,12 +985,12 @@ export function createDetailView(
       }
       // Render from current (if available) or keep placeholder until push arrives
       pending = false;
-      edit_title = false;
-      edit_desc = false;
-      edit_design = false;
-      edit_notes = false;
-      edit_accept = false;
-      edit_assignee = false;
+      editing_inline.title = false;
+      editing_text.description = false;
+      editing_text.design = false;
+      editing_text.notes = false;
+      editing_text.acceptance = false;
+      editing_inline.assignee = false;
       new_label_text = '';
       comment_text = '';
       comment_pending = false;
@@ -1707,14 +1014,8 @@ export function createDetailView(
     },
     destroy() {
       mount_element.replaceChildren();
-      if (delete_dialog && delete_dialog.parentNode) {
-        delete_dialog.parentNode.removeChild(delete_dialog);
-        delete_dialog = null;
-      }
-      if (dep_remove_dialog && dep_remove_dialog.parentNode) {
-        dep_remove_dialog.parentNode.removeChild(dep_remove_dialog);
-        dep_remove_dialog = null;
-      }
+      delete_dialog.destroy();
+      dep_remove_dialog.destroy();
     }
   };
 }
