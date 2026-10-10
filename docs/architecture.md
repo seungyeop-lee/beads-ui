@@ -37,8 +37,15 @@ push‑only data flow used between the browser SPA and the local Node.js server.
 - UI (app/)
   - `app/main.js`: bootstraps shell, creates store/router, wires WS client,
     refreshes on push
-  - Views: `app/views/list.js`, `app/views/detail.js` render issues and allow
-    edits
+  - Views: `app/views/list.js`, `app/views/detail.js`, `app/views/board.js`, and
+    `app/views/epics.js` render issues and allow edits. Large views are split:
+    markup lives in `*-template.js` factories bound to event handlers (`detail`
+    further splits section/field builders into
+    `detail-sections.js`/`detail-fields.js`), DOM behavior in
+    `*-interactions.js`/`*-keyboard.js`
+  - Data: per-subscription stores under `app/data/` render from push envelopes;
+    `app/data/subscription-key.js` derives the subscription keys the server also
+    uses (the server imports it across the process boundary)
   - Transport: `app/ws.js` persistent client with reconnect, correlation, and
     event dispatcher
   - Protocol: `app/protocol.js` shared message shapes, version, helpers, and
@@ -54,6 +61,8 @@ push‑only data flow used between the browser SPA and the local Node.js server.
     `server/ws/list-refresh.js`
   - bd bridge: `server/bd.js` (spawn `bd`, inject `--db` consistently, JSON
     helpers)
+  - Workspace registry: `server/registry-watcher.js` (discover workspaces from
+    `~/.beads/registry.json` plus in-memory dynamic registrations)
   - DB resolution/watch: `server/db.js` (resolve active DB path),
     `server/watcher.js` (schedule list refresh)
   - Config: `server/config.js` (bind to `127.0.0.1`, default port 3000)
@@ -94,6 +103,11 @@ Common message types (mutations only; list reads removed):
 - `dep-remove` payload: `{ a: string, b: string, view_id?: string }`
 - `create-issue` payload:
   `{ title: string, type?: 'bug'|'feature'|'task'|'epic'|'chore', priority?: 0|1|2|3|4, description?: string }`
+- `update-assignee` payload: `{ id: string, assignee: string }`
+- `delete-issue` payload: `{ id: string }`
+- `label-add` / `label-remove` payload: `{ id: string, label: string }`
+- `add-comment` payload: `{ id: string, text: string }`; `get-comments` payload:
+  `{ id: string }`
 
 Removed in v2:
 
@@ -173,24 +187,12 @@ Notes
 
 ## Risks & Open Questions
 
-- Create flow not implemented in server handlers
+- Windows support untested
   - Owner: Server
-  - Next: Add `create-issue` handler and tests; wire minimal UI affordance
-- Ready list support missing end‑to‑end
-  - Owner: Server + UI
-  - Next: Add `list-ready` handler and a list filter in UI
-- Backpressure when many updates arrive
+  - Next: Expand DB path resolution tests beyond macOS (dev) and Linux (CI)
+- Initial snapshot size for very large databases
   - Owner: Server
-  - Next: Coalesce broadcast events; consider debounce window
-- Large databases and payload size
-  - Owner: UI
-  - Next: Add incremental refresh (fetch issue by id on hints)
-- Cross‑platform DB path resolution nuances
-  - Owner: Server
-  - Next: Expand tests for Windows/macOS/Linux; document overrides
-- Acceptance text editing
-  - Owner: UI + Server
-  - Status: Implemented via `edit-text` + `--acceptance-criteria`
+  - Next: Measure snapshot latency before adding pagination or field trimming
 
 ---
 
