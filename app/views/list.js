@@ -1,16 +1,15 @@
-import { html, render } from 'lit-html';
+import { render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
-import { cmpClosedDesc, cmpPriorityThenCreated } from '../data/sort.js';
-import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
-import { statusLabel } from '../utils/status.js';
 import { createIssueRowRenderer } from './issue-row.js';
+import { attachListKeyboardNav } from './list-keyboard.js';
+import { createListTemplate } from './list-template.js';
 
 // List view implementation; requires a transport send function.
 
 /**
- * @typedef {{ id: string, title?: string, status?: 'closed'|'open'|'in_progress', priority?: number, issue_type?: string, assignee?: string, labels?: string[] }} Issue
+ * @import { Issue } from './list-template.js'
  */
 
 /**
@@ -18,22 +17,11 @@ import { createIssueRowRenderer } from './issue-row.js';
  *
  * @param {HTMLElement} mount_element - Element to render into.
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn - RPC transport.
- * @param {(hash: string) => void} [navigate_fn] - Navigation function (defaults to setting location.hash).
+ * @param {(hash: string) => void} [navigateFn] - Navigation function (defaults to setting location.hash).
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store] - Optional state store.
  * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [_subscriptions]
- * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issueStores]
- * @returns {{ load: () => Promise<void>, destroy: () => void }} View API.
- */
-/**
- * Create the Issues List view.
- *
- * @param {HTMLElement} mount_element
- * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn
- * @param {(hash: string) => void} [navigateFn]
- * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store]
- * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [_subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
- * @returns {{ load: () => Promise<void>, destroy: () => void }}
+ * @returns {{ load: () => Promise<void>, destroy: () => void }} View API.
  */
 export function createListView(
   mount_element,
@@ -85,14 +73,33 @@ export function createListView(
     return [];
   }
 
+  /**
+   * Open an issue detail from the current view context.
+   *
+   * @param {string} id
+   */
+  function openIssueById(id) {
+    const nav = navigateFn || ((h) => (window.location.hash = h));
+    /** @type {'issues'|'epics'|'board'} */
+    const view = store ? store.getState().view : 'issues';
+    nav(issueHashFor(view, id));
+  }
+
+  /**
+   * Track row selection locally and in the store (when set).
+   *
+   * @param {string | null} id
+   */
+  function setSelectedId(id) {
+    if (store && id) {
+      store.setState({ selected_id: id });
+    }
+    selected_id = id;
+  }
+
   // Shared row renderer (used in template below)
   const row_renderer = createIssueRowRenderer({
-    navigate: (id) => {
-      const nav = navigateFn || ((h) => (window.location.hash = h));
-      /** @type {'issues'|'epics'|'board'} */
-      const view = store ? store.getState().view : 'issues';
-      nav(issueHashFor(view, id));
-    },
+    navigate: openIssueById,
     onUpdate: updateInline,
     requestRender: doRender,
     getSelectedId: () => selected_id,
@@ -184,18 +191,30 @@ export function createListView(
     doRender();
   };
 
+  const list_template = createListTemplate({
+    toggleStatusDropdown,
+    toggleTypeDropdown,
+    toggleStatusFilter,
+    toggleTypeFilter,
+    onSearchInput,
+    renderRow: row_renderer
+  });
+
   /**
-   * Get display text for dropdown trigger.
-   *
-   * @param {string[]} selected
-   * @param {string} label
-   * @param {(val: string) => string} formatter
-   * @returns {string}
+   * Render the current issues_cache with filters applied.
    */
-  function getDropdownDisplayText(selected, label, formatter) {
-    if (selected.length === 0) return `${label}: Any`;
-    if (selected.length === 1) return `${label}: ${formatter(selected[0])}`;
-    return `${label} (${selected.length})`;
+  function doRender() {
+    render(
+      list_template({
+        issues: issues_cache,
+        status_filters,
+        search_text,
+        type_filters,
+        status_dropdown_open,
+        type_dropdown_open
+      }),
+      mount_element
+    );
   }
 
   // Initialize filters from store on first render so reload applies persisted state
@@ -211,167 +230,17 @@ export function createListView(
   // Compose helpers: centralize membership + entity selection + sorting
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
 
-  /**
-   * Build lit-html template for the list view.
-   */
-  function template() {
-    let filtered = issues_cache;
-    if (status_filters.length > 0 && !status_filters.includes('ready')) {
-      filtered = filtered.filter((it) =>
-        status_filters.includes(String(it.status || ''))
-      );
-    }
-    if (search_text) {
-      const needle = search_text.toLowerCase();
-      filtered = filtered.filter((it) => {
-        const a = String(it.id).toLowerCase();
-        const b = String(it.title || '').toLowerCase();
-        return a.includes(needle) || b.includes(needle);
-      });
-    }
-    if (type_filters.length > 0) {
-      filtered = filtered.filter((it) =>
-        type_filters.includes(String(it.issue_type || ''))
-      );
-    }
-    // Sorting: split by status, sort per group, then concat open → in_progress → closed.
-    // `ready` is an exclusive filter with only open (unblocked) items — skip grouping.
-    if (status_filters.length === 1 && status_filters[0] === 'ready') {
-      filtered = filtered.slice().sort(cmpPriorityThenCreated);
-    } else {
-      /** @type {Issue[]} */
-      const open_items = [];
-      /** @type {Issue[]} */
-      const in_progress_items = [];
-      /** @type {Issue[]} */
-      const closed_items = [];
-      for (const it of filtered) {
-        const s = String(it.status || '');
-        if (s === 'closed') {
-          closed_items.push(it);
-        } else if (s === 'in_progress') {
-          in_progress_items.push(it);
-        } else {
-          open_items.push(it);
-        }
-      }
-      open_items.sort(cmpPriorityThenCreated);
-      in_progress_items.sort(cmpPriorityThenCreated);
-      closed_items.sort(cmpClosedDesc);
-      filtered = [...open_items, ...in_progress_items, ...closed_items];
-    }
-
-    return html`
-      <div class="panel__header">
-        <div class="filter-dropdown ${status_dropdown_open ? 'is-open' : ''}">
-          <button
-            class="filter-dropdown__trigger"
-            @click=${toggleStatusDropdown}
-          >
-            ${getDropdownDisplayText(status_filters, 'Status', statusLabel)}
-            <span class="filter-dropdown__arrow">▾</span>
-          </button>
-          <div class="filter-dropdown__menu">
-            ${['ready', 'open', 'in_progress', 'closed'].map(
-              (s) => html`
-                <label
-                  class="filter-dropdown__option${status_filters.includes(
-                    'ready'
-                  ) && s !== 'ready'
-                    ? ' is-disabled'
-                    : ''}"
-                >
-                  <input
-                    type="checkbox"
-                    .checked=${status_filters.includes(s)}
-                    ?disabled=${status_filters.includes('ready') &&
-                    s !== 'ready'}
-                    @change=${() => toggleStatusFilter(s)}
-                  />
-                  ${s === 'ready' ? 'Ready' : statusLabel(s)}
-                </label>
-              `
-            )}
-          </div>
-        </div>
-        <div class="filter-dropdown ${type_dropdown_open ? 'is-open' : ''}">
-          <button class="filter-dropdown__trigger" @click=${toggleTypeDropdown}>
-            ${getDropdownDisplayText(type_filters, 'Types', typeLabel)}
-            <span class="filter-dropdown__arrow">▾</span>
-          </button>
-          <div class="filter-dropdown__menu">
-            ${ISSUE_TYPES.map(
-              (t) => html`
-                <label class="filter-dropdown__option">
-                  <input
-                    type="checkbox"
-                    .checked=${type_filters.includes(t)}
-                    @change=${() => toggleTypeFilter(t)}
-                  />
-                  ${typeLabel(t)}
-                </label>
-              `
-            )}
-          </div>
-        </div>
-        <input
-          type="search"
-          placeholder="Search…"
-          @input=${onSearchInput}
-          .value=${search_text}
-        />
-      </div>
-      <div class="panel__body" id="list-root">
-        ${filtered.length === 0
-          ? html`<div class="issues-block">
-              <div class="muted" style="padding:10px 12px;">No issues</div>
-            </div>`
-          : html`<div class="issues-block">
-              <table
-                class="table"
-                role="grid"
-                aria-rowcount=${String(filtered.length)}
-                aria-colcount="6"
-              >
-                <colgroup>
-                  <col style="width: 140px" />
-                  <col style="width: 120px" />
-                  <col />
-                  <col style="width: 140px" />
-                  <col style="width: 160px" />
-                  <col style="width: 130px" />
-                  <col style="width: 80px" />
-                </colgroup>
-                <thead>
-                  <tr role="row">
-                    <th role="columnheader">ID</th>
-                    <th role="columnheader">Type</th>
-                    <th role="columnheader">Title</th>
-                    <th role="columnheader">Status</th>
-                    <th role="columnheader">Assignee</th>
-                    <th role="columnheader">Priority</th>
-                    <th role="columnheader">Deps</th>
-                  </tr>
-                </thead>
-                <tbody role="rowgroup">
-                  ${filtered.map((it) => row_renderer(it))}
-                </tbody>
-              </table>
-            </div>`}
-      </div>
-    `;
-  }
-
-  /**
-   * Render the current issues_cache with filters applied.
-   */
-  function doRender() {
-    render(template(), mount_element);
-  }
-
   // Initial render (header + body shell with current state)
   doRender();
   // no separate ready checkbox when using select option
+
+  // Keyboard navigation
+  attachListKeyboardNav(mount_element, {
+    getSelectedId: () => selected_id,
+    setSelectedId,
+    openIssue: openIssueById,
+    requestRender: doRender
+  });
 
   /**
    * Update minimal fields inline via ws mutations and refresh that row's data.
@@ -436,114 +305,6 @@ export function createListView(
       // ignore
     }
   }
-
-  // Keyboard navigation
-  mount_element.tabIndex = 0;
-  mount_element.addEventListener('keydown', (ev) => {
-    // Grid cell Up/Down navigation when focus is inside the table and not within
-    // an editable control (input/textarea/select). Preserves column position.
-    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-      const tgt = /** @type {HTMLElement} */ (ev.target);
-      const table =
-        tgt && typeof tgt.closest === 'function'
-          ? tgt.closest('#list-root table.table')
-          : null;
-      if (table) {
-        // Do not intercept when inside native editable controls
-        const in_editable = Boolean(
-          tgt &&
-          typeof tgt.closest === 'function' &&
-          (tgt.closest('input') ||
-            tgt.closest('textarea') ||
-            tgt.closest('select'))
-        );
-        if (!in_editable) {
-          const cell =
-            tgt && typeof tgt.closest === 'function' ? tgt.closest('td') : null;
-          if (cell && cell.parentElement) {
-            const row = /** @type {HTMLTableRowElement} */ (cell.parentElement);
-            const tbody = /** @type {HTMLTableSectionElement|null} */ (
-              row.parentElement
-            );
-            if (tbody && tbody.querySelectorAll) {
-              const rows = Array.from(tbody.querySelectorAll('tr'));
-              const row_idx = Math.max(0, rows.indexOf(row));
-              const col_idx = cell.cellIndex || 0;
-              const next_idx =
-                ev.key === 'ArrowDown'
-                  ? Math.min(row_idx + 1, rows.length - 1)
-                  : Math.max(row_idx - 1, 0);
-              const next_row = rows[next_idx];
-              const next_cell =
-                next_row && next_row.cells ? next_row.cells[col_idx] : null;
-              if (next_cell) {
-                const focusable = /** @type {HTMLElement|null} */ (
-                  next_cell.querySelector(
-                    'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href], select:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled])'
-                  )
-                );
-                if (focusable && typeof focusable.focus === 'function') {
-                  ev.preventDefault();
-                  focusable.focus();
-                  return;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    const tbody = /** @type {HTMLTableSectionElement|null} */ (
-      mount_element.querySelector('#list-root tbody')
-    );
-    const items = tbody ? tbody.querySelectorAll('tr') : [];
-    if (items.length === 0) {
-      return;
-    }
-    let idx = 0;
-    if (selected_id) {
-      const arr = Array.from(items);
-      idx = arr.findIndex((el) => {
-        const did = el.getAttribute('data-issue-id') || '';
-        return did === selected_id;
-      });
-      if (idx < 0) {
-        idx = 0;
-      }
-    }
-    if (ev.key === 'ArrowDown') {
-      ev.preventDefault();
-      const next = items[Math.min(idx + 1, items.length - 1)];
-      const next_id = next ? next.getAttribute('data-issue-id') : '';
-      const set = next_id ? next_id : null;
-      if (store && set) {
-        store.setState({ selected_id: set });
-      }
-      selected_id = set;
-      doRender();
-    } else if (ev.key === 'ArrowUp') {
-      ev.preventDefault();
-      const prev = items[Math.max(idx - 1, 0)];
-      const prev_id = prev ? prev.getAttribute('data-issue-id') : '';
-      const set = prev_id ? prev_id : null;
-      if (store && set) {
-        store.setState({ selected_id: set });
-      }
-      selected_id = set;
-      doRender();
-    } else if (ev.key === 'Enter') {
-      ev.preventDefault();
-      const current = items[idx];
-      const id = current ? current.getAttribute('data-issue-id') : '';
-      if (id) {
-        const nav = navigateFn || ((h) => (window.location.hash = h));
-        /** @type {'issues'|'epics'|'board'} */
-        const view = store ? store.getState().view : 'issues';
-        nav(issueHashFor(view, id));
-      }
-    }
-  });
 
   // Click outside to close dropdowns
   /** @param {MouseEvent} e */
