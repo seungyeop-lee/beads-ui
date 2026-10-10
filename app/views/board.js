@@ -2,6 +2,7 @@ import { render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
 import { cmpClosedDesc, cmpPriorityThenCreated } from '../data/sort.js';
 import { debug } from '../utils/logging.js';
+import { updateIssueStatus as sendStatusUpdate } from '../utils/status-update.js';
 import { showToast } from '../utils/toast.js';
 import { createBoardInteractions } from './board-interactions.js';
 import { createBoardTemplate } from './board-template.js';
@@ -85,7 +86,7 @@ export function createBoardView(
     }
     try {
       log('update-status %s → %s', issue_id, new_status);
-      await transport('update-status', { id: issue_id, status: new_status });
+      await sendStatusUpdate(transport, { id: issue_id, status: new_status });
       showToast('Status updated', 'success', 1500);
     } catch (err) {
       log('update-status failed: %o', err);

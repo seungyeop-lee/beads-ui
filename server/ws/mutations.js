@@ -5,6 +5,7 @@
  * @import { WebSocket } from 'ws'
  */
 import { makeError } from '../../app/protocol.js';
+import { bdSupportsClearNotes } from '../bd.js';
 import { debug } from '../logging.js';
 import { runIssueMutation } from './issue-mutation.js';
 
@@ -39,33 +40,69 @@ export async function handleUpdateAssignee(ws, req) {
 }
 
 /**
- * Handle `update-status`: payload { id: string, status: 'open'|'in_progress'|'closed' }.
+ * Detect bd's close-policy refusal so the UI can offer an explicit
+ * force-close confirmation instead of a generic failure.
+ *
+ * bd 1.2.1+ refuses `bd update --status closed` while the issue has open
+ * children ("cannot close <id>: N open child issue(s); close children first
+ * or use --force to override") or a live blocker ("cannot close blocked
+ * issue: <id> is blocked by [...]"); `bd update --force` overrides both.
+ *
+ * @param {string} stderr
+ * @returns {{ code: string, message: string } | null}
+ */
+function classifyCloseRefusal(stderr) {
+  const line = stderr
+    .split('\n')
+    .find(
+      (l) =>
+        /cannot close/i.test(l) &&
+        (/open child/i.test(l) || /is blocked by/i.test(l))
+    );
+  if (!line) {
+    return null;
+  }
+  return { code: 'close_blocked', message: line.trim() };
+}
+
+/**
+ * Handle `update-status`: payload { id: string, status: 'open'|'in_progress'|'closed', force?: boolean }.
+ *
+ * `force` carries the user's explicit "close anyway" confirmation for bd's
+ * close policy (open children / live blocker) and only applies to `closed`.
  *
  * @param {WebSocket} ws
  * @param {RequestEnvelope} req
  */
 export async function handleUpdateStatus(ws, req) {
   log('update-status');
-  const { id, status } = /** @type {any} */ (req.payload);
+  const { id, status, force } = /** @type {any} */ (req.payload);
   const allowed = new Set(['open', 'in_progress', 'closed']);
   if (
     typeof id !== 'string' ||
     id.length === 0 ||
     typeof status !== 'string' ||
-    !allowed.has(status)
+    !allowed.has(status) ||
+    (force !== undefined && typeof force !== 'boolean')
   ) {
     ws.send(
       JSON.stringify(
         makeError(
           req,
           'bad_request',
-          "payload requires { id: string, status: 'open'|'in_progress'|'closed' }"
+          "payload requires { id: string, status: 'open'|'in_progress'|'closed', force?: boolean }"
         )
       )
     );
     return;
   }
-  await runIssueMutation(ws, req, ['update', id, '--status', status], id);
+  const args = ['update', id, '--status', status];
+  if (status === 'closed' && force === true) {
+    args.push('--force');
+  }
+  await runIssueMutation(ws, req, args, id, {
+    classifyError: status === 'closed' ? classifyCloseRefusal : undefined
+  });
 }
 
 /**
@@ -133,21 +170,33 @@ export async function handleEditText(ws, req) {
     );
     return;
   }
-  // Map UI fields to bd CLI flags
-  // title       → --title
-  // description → --description
-  // acceptance  → --acceptance-criteria
-  // notes       → --notes
-  // design      → --design
-  const flag =
-    field === 'title'
-      ? '--title'
-      : field === 'description'
-        ? '--description'
-        : field === 'acceptance'
-          ? '--acceptance-criteria'
-          : field === 'notes'
-            ? '--notes'
+  // Map UI fields to bd CLI flags:
+  //   title → --title, description → --description,
+  //   acceptance → --acceptance-criteria, design → --design.
+  // notes is special: bd fences blind overwrites of existing notes. The UI
+  // editor shows the current notes (a sighted edit), so a non-empty save
+  // passes --force (bd logs the overwrite warning as an audit trail), and
+  // clearing uses the dedicated --clear-notes verb where bd has it — bd up
+  // to 1.3.1 still clears via `--notes ""`.
+  /** @type {string[]} */
+  let args;
+  if (field === 'notes' && value === '') {
+    const clear_supported = await bdSupportsClearNotes();
+    args = clear_supported
+      ? ['update', id, '--clear-notes']
+      : ['update', id, '--notes', ''];
+  } else if (field === 'notes') {
+    args = ['update', id, '--notes', value, '--force'];
+  } else {
+    const flag =
+      field === 'title'
+        ? '--title'
+        : field === 'description'
+          ? '--description'
+          : field === 'acceptance'
+            ? '--acceptance-criteria'
             : '--design';
-  await runIssueMutation(ws, req, ['update', id, flag, value], id);
+    args = ['update', id, flag, value];
+  }
+  await runIssueMutation(ws, req, args, id);
 }

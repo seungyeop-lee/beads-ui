@@ -2,6 +2,7 @@ import { render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
+import { updateIssueStatus } from '../utils/status-update.js';
 import { createIssueRowRenderer } from './issue-row.js';
 import { attachListKeyboardNav } from './list-keyboard.js';
 import { createListTemplate } from './list-template.js';
@@ -259,7 +260,7 @@ export function createListView(
         await sendFn('update-assignee', { id, assignee: patch.assignee });
       }
       if (typeof patch.status === 'string') {
-        await sendFn('update-status', { id, status: patch.status });
+        await updateIssueStatus(sendFn, { id, status: patch.status });
       }
       if (typeof patch.priority === 'number') {
         await sendFn('update-priority', { id, priority: patch.priority });

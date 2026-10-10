@@ -460,16 +460,16 @@ export function bootstrap(root_element) {
     const router = createHashRouter(store);
     router.start();
     /**
+     * Forwards to the tracked ws transport. Errors propagate to the caller:
+     * every view already catches mutations (toast + revert), and swallowing
+     * here would also hide typed errors such as `close_blocked` from the
+     * force-close confirmation flow.
+     *
      * @param {string} type
      * @param {unknown} payload
      */
-    const transport = async (type, payload) => {
-      try {
-        return await tracked_send(/** @type {MessageType} */ (type), payload);
-      } catch {
-        return [];
-      }
-    };
+    const transport = (type, payload) =>
+      tracked_send(/** @type {MessageType} */ (type), payload);
     // Top navigation (optional mount)
     if (nav_mount) {
       createTopNav(nav_mount, store, router);

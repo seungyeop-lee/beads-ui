@@ -16,10 +16,26 @@ import { triggerMutationRefreshOnce } from './list-refresh.js';
  * @param {RequestEnvelope} req
  * @param {string[]} bd_args - bd mutation command args.
  * @param {string} issue_id - issue to re-fetch for the reply payload.
+ * @param {{ classifyError?: (stderr: string) => { code: string, message: string } | null }} [options]
+ * Optional mapper turning a bd failure into a typed error reply; return
+ * null to fall back to the generic `bd_error`.
  */
-export async function runIssueMutation(ws, req, bd_args, issue_id) {
+export async function runIssueMutation(
+  ws,
+  req,
+  bd_args,
+  issue_id,
+  options = {}
+) {
   const res = await runBd(bd_args);
   if (res.code !== 0) {
+    const classified = options.classifyError?.(res.stderr || '');
+    if (classified) {
+      ws.send(
+        JSON.stringify(makeError(req, classified.code, classified.message))
+      );
+      return;
+    }
     ws.send(
       JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
     );

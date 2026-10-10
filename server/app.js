@@ -7,7 +7,7 @@ import path from 'node:path';
 import {
   getAvailableWorkspaces,
   registerWorkspace
-} from './registry-watcher.js';
+} from './workspace-registry.js';
 
 /**
  * Create and configure the Express application.

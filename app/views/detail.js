@@ -2,11 +2,34 @@
 import { html, render } from 'lit-html';
 import { parseView } from '../router.js';
 import { debug } from '../utils/logging.js';
+import { updateIssueStatus } from '../utils/status-update.js';
 import { showToast } from '../utils/toast.js';
 import { createDetailTemplate } from './detail-template.js';
 
 /** @typedef {import('./detail-template.js').IssueDetail} IssueDetail */
 /** @typedef {import('./detail-sections.js').Dependency} Dependency */
+
+/**
+ * Escape a value for interpolation into raw innerHTML (confirm dialogs).
+ * Issue titles and ids come from bd data, which can originate from remotes
+ * and other agents, so they must not be injected as markup.
+ *
+ * @param {string} s
+ * @returns {string}
+ */
+function escapeHtml(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      /** @type {Record<string, string>} */ ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[c] || c
+  );
+}
 
 /**
  * Wrap a click-to-edit handler so a click that ends a drag text selection
@@ -216,7 +239,7 @@ export function createDetailView(
     const issueTitle = current.title || '(no title)';
     delete_dialog.open({
       title: 'Delete Issue',
-      message: `Are you sure you want to delete issue <strong>${current.id}</strong> — <strong>${issueTitle}</strong>? This action cannot be undone.`,
+      message: `Are you sure you want to delete issue <strong>${escapeHtml(current.id)}</strong> — <strong>${escapeHtml(issueTitle)}</strong>? This action cannot be undone.`,
       confirm_label: 'Delete',
       on_confirm: performDelete
     });
@@ -232,7 +255,7 @@ export function createDetailView(
       title === 'Dependencies' ? 'dependency on' : 'dependent from';
     dep_remove_dialog.open({
       title: `Remove ${title.slice(0, -1).replace('ies', 'y')}`,
-      message: `Remove ${direction} <strong>${did}</strong>?`,
+      message: `Remove ${direction} <strong>${escapeHtml(did)}</strong>?`,
       confirm_label: 'Remove',
       on_confirm: () => performDepRemove(did, title)
     });
@@ -356,6 +379,7 @@ export function createDetailView(
       showToast('Failed to add label', 'error');
     } finally {
       pending = false;
+      doRender();
     }
   }
   /**
@@ -381,6 +405,7 @@ export function createDetailView(
       showToast('Failed to remove label', 'error');
     } finally {
       pending = false;
+      doRender();
     }
   }
   /**
@@ -402,7 +427,7 @@ export function createDetailView(
     doRender();
     try {
       log('update status %s → %s', String(current.id), next);
-      const updated = await sendFn('update-status', {
+      const updated = await updateIssueStatus(sendFn, {
         id: current.id,
         status: next
       });
@@ -417,6 +442,7 @@ export function createDetailView(
       showToast('Failed to update status', 'error');
     } finally {
       pending = false;
+      doRender();
     }
   };
   /**
@@ -453,6 +479,7 @@ export function createDetailView(
       showToast('Failed to update priority', 'error');
     } finally {
       pending = false;
+      doRender();
     }
   };
 
@@ -541,6 +568,7 @@ export function createDetailView(
         showToast(`Failed to save ${field}`, 'error');
       } finally {
         pending = false;
+        doRender();
       }
     };
     const onCancel = () => {
@@ -636,6 +664,7 @@ export function createDetailView(
         showToast(spec.toast_message, 'error');
       } finally {
         pending = false;
+        doRender();
       }
     };
 
@@ -836,6 +865,7 @@ export function createDetailView(
       log('dep-remove failed %o', err);
     } finally {
       pending = false;
+      doRender();
     }
   }
 

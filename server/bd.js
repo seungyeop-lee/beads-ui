@@ -283,3 +283,22 @@ export async function runBdJson(args, options = {}) {
 export function showIssueArgs(id) {
   return ['show', id, '--json', '--include-dependents'];
 }
+
+/**
+ * Whether the connected `bd` supports `bd update --clear-notes`.
+ *
+ * bd up to 1.3.1 clears notes via `--notes ""`; the next release refuses
+ * that form and requires the dedicated `--clear-notes` verb. Probed once
+ * from `bd update --help` so note clearing works across both.
+ *
+ * @returns {Promise<boolean>}
+ */
+let clear_notes_probe = /** @type {Promise<boolean> | null} */ (null);
+export function bdSupportsClearNotes() {
+  if (!clear_notes_probe) {
+    clear_notes_probe = runBd(['update', '--help']).then(
+      (res) => res.code === 0 && /--clear-notes/.test(res.stdout || '')
+    );
+  }
+  return clear_notes_probe;
+}

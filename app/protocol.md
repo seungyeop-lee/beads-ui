@@ -29,7 +29,9 @@ a generated `id`.
 
 - Removed in v2: `list-issues` (use subscriptions + push stores)
 - `update-status` payload:
-  `{ id: string, status: 'open'|'in_progress'|'closed' }`
+  `{ id: string, status: 'open'|'in_progress'|'closed', force?: boolean }`
+  (`force: true` closes despite bd's close policy — open children or a live
+  blocker — mirroring `bd update --force`; only honored for `closed`)
 - `edit-text` payload:
   `{ id: string, field: 'title'|'description'|'acceptance'|'notes'|'design', value: string }`
 - `update-priority` payload: `{ id: string, priority: 0|1|2|3|4 }`
@@ -50,9 +52,12 @@ a generated `id`.
 
 - Removed in v2: `list-issues` → use subscriptions and push
   (`docs/protocol/issues-push-v2.md`)
-- `update-status` → `bd update <id> --status <status>`
+- `update-status` → `bd update <id> --status <status>` (plus `--force` when
+  `force: true` and status is `closed`)
 - `edit-text` → `bd update <id> --title <t>` or `--description <d>` or
-  `--acceptance-criteria <a>` or `--notes <n>` or `--design <z>`
+  `--acceptance-criteria <a>` or `--design <z>`; `notes` maps to
+  `--notes <n> --force` (the UI editor is a sighted edit) and an empty value to
+  `--clear-notes` (`--notes ""` on bd ≤ 1.3.1)
 - `update-priority` → `bd update <id> --priority <n>`
 - `create-issue` → `bd create "title" -t <type> -p <prio> -d "desc"`
 - `list-ready` → `bd ready --json`
@@ -63,4 +68,6 @@ Errors follow the shape `{ code, message, details? }`. Common codes:
 
 - `bad_request` – malformed payload or unknown type
 - `not_found` – entity not found (e.g., issue id)
+- `close_blocked` – bd refused the close (open children / live blocker);
+  `message` carries bd's guidance, retry with `force: true` to override
 - `bd_error` – underlying `bd` command failed

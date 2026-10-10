@@ -8,8 +8,8 @@ import path from 'node:path';
 import { makeError, makeOk } from '../../app/protocol.js';
 import { resolveWorkspaceDatabase } from '../db.js';
 import { debug } from '../logging.js';
-import { getAvailableWorkspaces } from '../registry-watcher.js';
 import { registry } from '../subscriptions.js';
+import { getAvailableWorkspaces } from '../workspace-registry.js';
 import {
   getCurrentWorkspace,
   getDbWatcher,

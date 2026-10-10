@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { getAvailableWorkspaces } from './registry-watcher.js';
+import { getAvailableWorkspaces } from './workspace-registry.js';
 import { handleMessage } from './ws.js';
 
-vi.mock('./registry-watcher.js', () => ({
+vi.mock('./workspace-registry.js', () => ({
   getAvailableWorkspaces: vi.fn()
 }));
 

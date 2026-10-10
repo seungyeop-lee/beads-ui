@@ -60,6 +60,173 @@ describe('views/detail edits', () => {
     expect(select2.value).toBe('in_progress');
   });
 
+  test('reverts and re-enables the status select after a failed update', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const initial = {
+      id: 'UI-8',
+      title: 'T',
+      description: 'D',
+      status: 'open',
+      priority: 2
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-8' ? [initial] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const send = mockSend(async (type) => {
+      if (type === 'update-status') {
+        // Same rejection shape the ws transport produces for a bd error.
+        throw { code: 'bd_error', message: 'boom' };
+      }
+      throw new Error('Unexpected');
+    });
+    const view = createDetailView(mount, send, undefined, stores);
+    await view.load('UI-8');
+    const select = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select')
+    );
+    select.value = 'closed';
+    select.dispatchEvent(new Event('change'));
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+    // The failure reverts the dropdown and re-enables it (finally doRender)
+    const select2 = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select')
+    );
+    expect(select2.value).toBe('open');
+    expect(select2.disabled).toBe(false);
+    const toast = /** @type {HTMLElement} */ (
+      document.body.querySelector('.toast')
+    );
+    expect(toast).not.toBeNull();
+    expect((toast.textContent || '').toLowerCase()).toContain(
+      'failed to update status'
+    );
+    await vi.advanceTimersByTimeAsync(3000);
+    vi.useRealTimers();
+  });
+
+  test('shows force-close confirmation on close_blocked, reverts on cancel and retries with force', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const initial = {
+      id: 'UI-10',
+      title: 'T',
+      description: 'D',
+      status: 'open',
+      priority: 2
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-10' ? [initial] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const send = mockSend(async (type, payload) => {
+      if (type === 'update-status') {
+        if (/** @type {any} */ (payload).force === true) {
+          // The confirmed retry carries the user's explicit consent.
+          expect(payload).toEqual({
+            id: 'UI-10',
+            status: 'closed',
+            force: true
+          });
+          return { ...initial, status: 'closed' };
+        }
+        // Same rejection shape the ws transport produces for the refusal.
+        throw {
+          code: 'close_blocked',
+          message: 'cannot close UI-10: 1 open child issue(s)'
+        };
+      }
+      throw new Error('Unexpected');
+    });
+    const view = createDetailView(mount, send, undefined, stores);
+    await view.load('UI-10');
+    const select = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select')
+    );
+    select.value = 'closed';
+    select.dispatchEvent(new Event('change'));
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+    // The confirmation dialog renders with bd's refusal message
+    const dialog = /** @type {HTMLElement} */ (
+      document.getElementById('force-close-dialog')
+    );
+    expect(dialog).not.toBeNull();
+    expect(dialog.hasAttribute('open')).toBe(true);
+    const message_el = /** @type {HTMLElement} */ (
+      dialog.querySelector('.delete-confirm__message')
+    );
+    expect((message_el.textContent || '').toLowerCase()).toContain(
+      '1 open child issue(s)'
+    );
+    // Cancel keeps the issue open and re-enables the select
+    const cancel_btn = /** @type {HTMLElement} */ (
+      document.getElementById('force-close-cancel-btn')
+    );
+    cancel_btn.click();
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+    const select2 = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select')
+    );
+    expect(select2.value).toBe('open');
+    expect(select2.disabled).toBe(false);
+    // Cancel closed the confirmation dialog
+    expect(dialog.hasAttribute('open')).toBe(false);
+    // Retrying and confirming forces the close through
+    const select3 = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select')
+    );
+    select3.value = 'closed';
+    select3.dispatchEvent(new Event('change'));
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+    expect(dialog.hasAttribute('open')).toBe(true);
+    const confirm_btn = /** @type {HTMLElement} */ (
+      document.getElementById('force-close-confirm-btn')
+    );
+    confirm_btn.click();
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+    const status_calls = /** @type {import('vitest').Mock} */ (
+      send
+    ).mock.calls.filter((/** @type {any[]} */ c) => c[0] === 'update-status');
+    expect(status_calls).toHaveLength(3);
+    expect(status_calls[status_calls.length - 1][1]).toEqual({
+      id: 'UI-10',
+      status: 'closed',
+      force: true
+    });
+    const select4 = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select')
+    );
+    expect(select4.value).toBe('closed');
+    expect(select4.disabled).toBe(false);
+    await vi.advanceTimersByTimeAsync(3000);
+    vi.useRealTimers();
+  });
+
   test('saves title and re-renders from reply', async () => {
     document.body.innerHTML =
       '<section class="panel"><div id="mount"></div></section>';

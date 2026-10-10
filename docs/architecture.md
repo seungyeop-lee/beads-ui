@@ -59,10 +59,10 @@ push‑only data flow used between the browser SPA and the local Node.js server.
     mutate-and-reply flow in `server/ws/issue-mutation.js`, connection/workspace
     state in `server/ws/context.js`, and refresh scheduling/delta publishing in
     `server/ws/list-refresh.js`
-  - bd bridge: `server/bd.js` (spawn `bd`, inject `--db` consistently, JSON
-    helpers)
-  - Workspace registry: `server/registry-watcher.js` (discover workspaces from
-    `~/.beads/registry.json` plus in-memory dynamic registrations)
+  - bd bridge: `server/bd.js` (spawn `bd`, export `BEADS_DB` for local SQLite
+    workspaces, JSON helpers)
+  - Workspace registry: `server/workspace-registry.js` (in-memory dynamic
+    registrations; bd 1.x no longer writes `~/.beads/registry.json`)
   - DB resolution/watch: `server/db.js` (resolve active DB path),
     `server/watcher.js` (schedule list refresh)
   - Config: `server/config.js` (bind to `127.0.0.1`, default port 3000)

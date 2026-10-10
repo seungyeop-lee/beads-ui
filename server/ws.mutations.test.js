@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { runBd, runBdJson } from './bd.js';
+import { bdSupportsClearNotes, runBd, runBdJson } from './bd.js';
 import { handleMessage } from './ws.js';
 
 vi.mock('./bd.js', () => ({
   runBdJson: vi.fn(),
   runBd: vi.fn(),
+  bdSupportsClearNotes: vi.fn(),
   showIssueArgs: /** @param {string} id */ (id) => [
     'show',
     id,
@@ -17,6 +18,11 @@ vi.mock('./bd.js', () => ({
 beforeEach(() => {
   /** @type {import('vitest').Mock} */ (runBd).mockReset();
   /** @type {import('vitest').Mock} */ (runBdJson).mockReset();
+  // Default to bd ≤ 1.3.1 behavior (clear via `--notes ""`).
+  /** @type {import('vitest').Mock} */ (bdSupportsClearNotes).mockReset();
+  /** @type {import('vitest').Mock} */ (bdSupportsClearNotes).mockResolvedValue(
+    false
+  );
 });
 
 function makeStubSocket() {
@@ -69,6 +75,130 @@ describe('ws mutation handlers', () => {
     const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
     expect(obj.ok).toBe(false);
     expect(obj.error.code).toBe('bad_request');
+  });
+
+  test('update-status closed with force passes --force to bd', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+    mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    mJson.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: { id: 'UI-7', status: 'closed' }
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r2f',
+      type: 'update-status',
+      payload: { id: 'UI-7', status: 'closed', force: true }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    expect(mRun.mock.calls[0][0]).toEqual([
+      'update',
+      'UI-7',
+      '--status',
+      'closed',
+      '--force'
+    ]);
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(true);
+  });
+
+  test('update-status closed refused by close policy yields close_blocked', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    mRun.mockResolvedValueOnce({
+      code: 1,
+      stdout: '',
+      stderr:
+        'Error updating UI-7: cannot close UI-7: 1 open child issue(s); close children first or use --force to override'
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r2b',
+      type: 'update-status',
+      payload: { id: 'UI-7', status: 'closed' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(false);
+    expect(obj.error.code).toBe('close_blocked');
+    expect(obj.error.message).toContain('1 open child issue(s)');
+  });
+
+  test('update-status closed refused by live blocker yields close_blocked', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    mRun.mockResolvedValueOnce({
+      code: 1,
+      stdout: '',
+      stderr:
+        'Error updating UI-9: cannot close blocked issue: UI-9 is blocked by [UI-4]'
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r2d',
+      type: 'update-status',
+      payload: { id: 'UI-9', status: 'closed' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(false);
+    expect(obj.error.code).toBe('close_blocked');
+    expect(obj.error.message).toContain('is blocked by [UI-4]');
+  });
+
+  test('update-status closed refused for a non-forceable reason stays bd_error', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    mRun.mockResolvedValueOnce({
+      code: 1,
+      stdout: '',
+      stderr:
+        'Error updating UI-5: cannot close template issue: UI-5 is read-only'
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r2e',
+      type: 'update-status',
+      payload: { id: 'UI-5', status: 'closed' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(false);
+    // "cannot close" alone must not classify: only the two forceable
+    // close-policy refusals (open children / live blocker) do.
+    expect(obj.error.code).toBe('bd_error');
+  });
+
+  test('update-status non-close bd failure stays bd_error', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    mRun.mockResolvedValueOnce({
+      code: 1,
+      stdout: '',
+      stderr: 'Error: issue not found'
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r2c',
+      type: 'update-status',
+      payload: { id: 'UI-7', status: 'closed' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(false);
+    expect(obj.error.code).toBe('bd_error');
   });
 
   test('update-priority success path', async () => {
@@ -231,13 +361,63 @@ describe('ws mutation handlers', () => {
     const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
     expect(obj.ok).toBe(true);
     expect(obj.payload.notes).toBe('Some note');
-    // Verify correct flag mapping for notes
+    // Sighted edit in the UI editor: overwrite deliberately with --force.
     expect(mRun.mock.calls[0][0]).toEqual([
       'update',
       'UI-12',
       '--notes',
-      'Some note'
+      'Some note',
+      '--force'
     ]);
+  });
+
+  test('edit-text notes empty value clears via --clear-notes when bd supports it', async () => {
+    /** @type {import('vitest').Mock} */ (
+      bdSupportsClearNotes
+    ).mockResolvedValue(true);
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+    mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    mJson.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: { id: 'UI-12', notes: '' }
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r4n2',
+      type: 'edit-text',
+      payload: { id: 'UI-12', field: 'notes', value: '' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    expect(mRun.mock.calls[0][0]).toEqual(['update', 'UI-12', '--clear-notes']);
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(true);
+  });
+
+  test('edit-text notes empty value falls back to --notes "" on older bd', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+    mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    mJson.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: { id: 'UI-12', notes: '' }
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r4n3',
+      type: 'edit-text',
+      payload: { id: 'UI-12', field: 'notes', value: '' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    expect(mRun.mock.calls[0][0]).toEqual(['update', 'UI-12', '--notes', '']);
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(true);
   });
 
   test('edit-text description success and flag mapping', async () => {

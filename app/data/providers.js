@@ -2,6 +2,7 @@
  * @import { MessageType } from '../protocol.js'
  */
 import { debug } from '../utils/logging.js';
+import { updateIssueStatus } from '../utils/status-update.js';
 
 /**
  * Data layer: typed wrappers around the ws transport for mutations and
@@ -57,7 +58,7 @@ export function createDataLayer(transport) {
       });
     }
     if (typeof input.status === 'string') {
-      last = await transport('update-status', {
+      last = await updateIssueStatus(transport, {
         id,
         status: input.status
       });
