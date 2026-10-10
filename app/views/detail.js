@@ -6,7 +6,7 @@ import { showToast } from '../utils/toast.js';
 import { createDetailTemplate } from './detail-template.js';
 
 /** @typedef {import('./detail-template.js').IssueDetail} IssueDetail */
-/** @typedef {import('./detail-template.js').Dependency} Dependency */
+/** @typedef {import('./detail-sections.js').Dependency} Dependency */
 
 /**
  * Wrap a click-to-edit handler so a click that ends a drag text selection
