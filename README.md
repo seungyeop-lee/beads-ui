@@ -42,15 +42,18 @@ See `bdui --help` for options.
 
 ### Upgrade
 
-Request the latest version explicitly. While the package is on `0.x`, the
-`^0.x.y` range saved by a plain install pins the minor version, so re-running
-the install command above keeps the old version:
+Request the latest version explicitly:
 
 ```sh
 npm i -g @seungyeop-lee/beads-ui@latest
 # Or with pnpm:
 # pnpm add -g @seungyeop-lee/beads-ui@latest
 ```
+
+> **pnpm ≥ 11 note:** pnpm delays newly published versions by 24 hours by
+> default (`minimumReleaseAge`). Within 24 hours of a release, the command above
+> silently installs the previous version. To get a fresh release immediately,
+> request the exact version (`pnpm add -g @seungyeop-lee/beads-ui@<version>`).
 
 ## Screenshots
 
