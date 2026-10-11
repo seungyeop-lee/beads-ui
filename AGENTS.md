@@ -26,3 +26,24 @@ after a fresh clone if they are missing.
 
 After changing UI sources under `app/`, run `pnpm build` to regenerate
 `app/main.bundle.js` — `pnpm all` does **not** build.
+
+## Release
+
+`pnpm version <level>` drives the whole release through lifecycle hooks:
+`preversion` runs the full gate (`pnpm all`), `version` regenerates `CHANGES.md`
+from commits, and `postversion` pushes the release commit and tag
+(`git push --follow-tags`) before running `pnpm publish`.
+
+The npm account enforces 2FA for writes, and `pnpm publish` cannot supply the
+OTP, so it fails with a misleading `404 Not found` **after** the push has
+already succeeded. That 404 does not mean the release failed — finish with:
+
+```sh
+npm publish --otp=<fresh 6-digit code>
+```
+
+- OTP codes expire in ~30s; use a fresh code.
+- Pick the level from commits since the last tag: any `feat` → minor, `fix`-only
+  → patch, breaking change → major.
+- Registry propagation takes a few minutes, so `npm view` still showing the old
+  version right after publish is not a failure. Do not re-publish.
