@@ -1,5 +1,51 @@
 # Changes
 
+## 0.19.0
+
+- [`0b5fa7c`](https://github.com/seungyeop-lee/beads-ui/commit/0b5fa7c9dea737309e1eec3ea736ec4f9f2622ea)
+  fix: mutation replies blank the issue detail view
+    >
+    > bd show --json returns an array; mutation replies passed it through raw, so after any label/status/priority/assignee/text/dep mutation the detail rendered the array as the issue and blanked until the next push or re-entry
+    >
+    > - unwrap the shared mutation reply to the single issue object and reply not_found when the re-fetch comes back empty
+    > - the detail view applies replies through one guard that rejects malformed payloads and carries over loaded comments (bd show reports only comment_count)
+    > - label and comment inputs clear after a successful submit (lit-html skips commits equal to its last committed value; bind with live())
+    >
+- [`68e49fd`](https://github.com/seungyeop-lee/beads-ui/commit/68e49fdcc033ebda4dcd25f5fecf66e2cd2e6d39)
+  feat: force-close confirmation and notes consent mapping for bd 1.3+
+    >
+    > bd refuses --status closed with open children or a live blocker; the server classifies both refusal forms as close_blocked and the UI asks for explicit confirmation before retrying with --force
+    >
+    > - notes edits pass --force (bd fences blind overwrites; the editor is a sighted edit) and clears use --clear-notes where the connected bd has it, falling back to --notes "" on bd <= 1.3.1
+    > - stop watching ~/.beads/registry.json (bd 1.x no longer writes it); keep in-memory workspace registration
+    > - propagate ws transport errors instead of swallowing them, so mutation failures toast and revert and typed errors reach the confirmation flow
+    > - re-render detail handlers after pending resets so failed edits re-enable controls immediately
+- [`29f0102`](https://github.com/seungyeop-lee/beads-ui/commit/29f01028af669d47e531b4467e9759dfb497b319)
+  docs: refresh architecture to current module layout
+- [`f66daa7`](https://github.com/seungyeop-lee/beads-ui/commit/f66daa714cf42f3c2712b47410660f4b9dc8029c)
+  test: pin registry, workspace, and dialog behavior contracts
+- [`328e79c`](https://github.com/seungyeop-lee/beads-ui/commit/328e79cbd3ff4556dc41442ade61f9089c0e5393)
+  refactor: split detail template into section and field modules
+- [`d72dff5`](https://github.com/seungyeop-lee/beads-ui/commit/d72dff5b4b7eb86c7c8aed3cfe705e4bd0263c84)
+  test: pin validators, sort comparators, and issue row rendering
+- [`f4dce14`](https://github.com/seungyeop-lee/beads-ui/commit/f4dce1458f2aa77c4f0d22bc0b32d4c882cb48b2)
+  refactor: split board and list views into template and interaction modules
+- [`e0d577c`](https://github.com/seungyeop-lee/beads-ui/commit/e0d577c3d9b733f63e008fcb3017d3970ba22f22)
+  refactor: derive subscription keys from one shared module
+- [`10c6057`](https://github.com/seungyeop-lee/beads-ui/commit/10c605771264efaa7d6e61dcfe6a1916376b019b)
+  fix: issue dialog escape handling and detail template regressions
+- [`7013811`](https://github.com/seungyeop-lee/beads-ui/commit/7013811f8738c08ba2106d5cd4c433378944a7d3)
+  refactor: build issue detail view from template module and handler factories
+- [`a338efb`](https://github.com/seungyeop-lee/beads-ui/commit/a338efb078e4fed0eb4203fdd464da75e9178ac5)
+  refactor: split ws message dispatch into focused handler modules
+    >
+    > Dep, label, and field mutations now run through one shared issue mutation flow.
+    >
+- [`7d6988e`](https://github.com/seungyeop-lee/beads-ui/commit/7d6988ebeec755df5cdcecfc1b373963834ca4d0)
+  fix: widen detail markdown spacing and reset edit state on reopen
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-10-11._
+
 ## 0.18.0
 
 - [`83bbd40`](https://github.com/seungyeop-lee/beads-ui/commit/83bbd40bbb731dc82e467f5670a5e6cb88f70b07)
