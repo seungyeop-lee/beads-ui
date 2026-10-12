@@ -1,5 +1,18 @@
 # Changes
 
+## 0.19.2
+
+- [`a3044a9`](https://github.com/seungyeop-lee/beads-ui/commit/a3044a9bdd0869401a3f7f8132d96893266988d0)
+  fix: bd 1.3 issue types render as em-dash
+    >
+    > bd 1.3 added decision, spike, story, and milestone as built-in types; the UI and server hardcoded the original five in four places, so badges for the new types fell back to the neutral em-dash and create-issue silently dropped -t back to the default task
+    >
+    > - consolidate the built-in type list into ISSUE_TYPES and use it for dropdowns, badge labels, localStorage filter restore, and create-issue validation
+    > - add badge colors for the four new types and ship app/utils/issue-type.js in the published files whitelist now that the server imports it
+    >
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-10-12._
+
 ## 0.19.1
 
 - [`b97e140`](https://github.com/seungyeop-lee/beads-ui/commit/b97e1408c5746581b85efdbdd90d79c52d6c61b7)
