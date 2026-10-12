@@ -36,7 +36,7 @@ a generated `id`.
   `{ id: string, field: 'title'|'description'|'acceptance'|'notes'|'design', value: string }`
 - `update-priority` payload: `{ id: string, priority: 0|1|2|3|4 }`
 - `create-issue` payload:
-  `{ title: string, type?: 'bug'|'feature'|'task'|'epic'|'chore', priority?: 0|1|2|3|4, description?: string }`
+  `{ title: string, type?: 'bug'|'feature'|'task'|'epic'|'chore'|'decision'|'spike'|'story'|'milestone', priority?: 0|1|2|3|4, description?: string }`
 - `list-ready` payload: `{}`
 - Removed in v2: `subscribe-updates` and the `issues-changed` event. All list
   and detail updates flow via per-subscription push envelopes
