@@ -1,5 +1,25 @@
 # Changes
 
+## 0.19.1
+
+- [`b97e140`](https://github.com/seungyeop-lee/beads-ui/commit/b97e1408c5746581b85efdbdd90d79c52d6c61b7)
+  fix: published package crashes at startup
+    >
+    > the server-side subscription modules import a shared key module the files whitelist did not ship, so the installed CLI died with ERR_MODULE_NOT_FOUND while local runs and tests passed because the file exists in the repo
+    >
+    > - ship app/data/subscription-key.js in the published files
+    > - add a packaging test that fails when any shipped file imports a file the whitelist omits
+    >
+- [`08b3e37`](https://github.com/seungyeop-lee/beads-ui/commit/08b3e37b744d36af6b64736eb5cd88311b5efd61)
+  docs: correct upgrade guide and document pnpm release-age delay
+    >
+    > the saved ^0.x range never pinned a global reinstall; npm and pnpm both re-resolve the latest tag, and pnpm >= 11 instead delays versions younger than 24 hours (minimumReleaseAge), silently installing the previous version right after a release
+    >
+- [`063e47a`](https://github.com/seungyeop-lee/beads-ui/commit/063e47a291e52d6c01d05e980b9ec431bb58348a)
+  docs: record release flow and OTP publish step in agent guide
+
+_Released by [seungyeop-lee](https://github.com/seungyeop-lee) on 2026-10-12._
+
 ## 0.19.0
 
 - [`0b5fa7c`](https://github.com/seungyeop-lee/beads-ui/commit/0b5fa7c9dea737309e1eec3ea736ec4f9f2622ea)
