@@ -76,6 +76,7 @@
     "app/main.bundle.js",
     "app/main.bundle.js.map",
     "app/protocol.js",
+    "app/data/subscription-key.js",
     "bin",
     "server",
     "CHANGES.md",
