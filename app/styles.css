@@ -19,6 +19,10 @@
   --type-epic-base: #f69842;
   --type-feature-base: #51cb43;
   --type-chore-base: #666666;
+  --type-decision-base: #2f6fdb;
+  --type-spike-base: #0e9488;
+  --type-story-base: #9333ea;
+  --type-milestone-base: #d6338a;
 
   /* Neutral badge */
   --badge-bg-neutral: color-mix(in srgb, var(--panel-bg) 85%, #6b7280);
@@ -51,6 +55,34 @@
     var(--type-chore-base)
   );
   --badge-fg-chore: color-mix(in srgb, var(--type-chore-base) 90%, #000);
+  --badge-bg-decision: color-mix(
+    in srgb,
+    var(--panel-bg) 85%,
+    var(--type-decision-base)
+  );
+  --badge-fg-decision: color-mix(in srgb, var(--type-decision-base) 90%, #000);
+  --badge-bg-spike: color-mix(
+    in srgb,
+    var(--panel-bg) 85%,
+    var(--type-spike-base)
+  );
+  --badge-fg-spike: color-mix(in srgb, var(--type-spike-base) 90%, #000);
+  --badge-bg-story: color-mix(
+    in srgb,
+    var(--panel-bg) 85%,
+    var(--type-story-base)
+  );
+  --badge-fg-story: color-mix(in srgb, var(--type-story-base) 90%, #000);
+  --badge-bg-milestone: color-mix(
+    in srgb,
+    var(--panel-bg) 85%,
+    var(--type-milestone-base)
+  );
+  --badge-fg-milestone: color-mix(
+    in srgb,
+    var(--type-milestone-base) 90%,
+    #000
+  );
 
   /* Links */
   --link: #1d4ed8;
@@ -540,6 +572,22 @@ button:disabled {
 .type-badge--chore {
   background: var(--badge-bg-chore);
   color: var(--badge-fg-chore);
+}
+.type-badge--decision {
+  background: var(--badge-bg-decision);
+  color: var(--badge-fg-decision);
+}
+.type-badge--spike {
+  background: var(--badge-bg-spike);
+  color: var(--badge-fg-spike);
+}
+.type-badge--story {
+  background: var(--badge-bg-story);
+  color: var(--badge-fg-story);
+}
+.type-badge--milestone {
+  background: var(--badge-bg-milestone);
+  color: var(--badge-fg-milestone);
 }
 
 /* Generic badge base (shared look) */

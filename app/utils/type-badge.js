@@ -1,7 +1,9 @@
+import { isKnownType, typeLabel } from './issue-type.js';
+
 /**
  * Create a compact, colored badge for an issue type.
  *
- * @param {string | undefined | null} issue_type - One of: bug, feature, task, epic, chore
+ * @param {string | undefined | null} issue_type - Built-in bd issue type
  * @returns {HTMLSpanElement}
  */
 export function createTypeBadge(issue_type) {
@@ -9,26 +11,15 @@ export function createTypeBadge(issue_type) {
   el.className = 'type-badge';
 
   const t = (issue_type || '').toString().toLowerCase();
-  const KNOWN = new Set(['bug', 'feature', 'task', 'epic', 'chore']);
-  const kind = KNOWN.has(t) ? t : 'neutral';
-  el.classList.add(`type-badge--${kind}`);
+  const known = isKnownType(t);
+  el.classList.add(`type-badge--${known ? t : 'neutral'}`);
   el.setAttribute('role', 'img');
-  const label = KNOWN.has(t)
-    ? t === 'bug'
-      ? 'Bug'
-      : t === 'feature'
-        ? 'Feature'
-        : t === 'task'
-          ? 'Task'
-          : t === 'epic'
-            ? 'Epic'
-            : 'Chore'
-    : '—';
+  const label = known ? typeLabel(t) : '—';
   el.setAttribute(
     'aria-label',
-    KNOWN.has(t) ? `Issue type: ${label}` : 'Issue type: unknown'
+    known ? `Issue type: ${label}` : 'Issue type: unknown'
   );
-  el.setAttribute('title', KNOWN.has(t) ? `Type: ${label}` : 'Type: unknown');
+  el.setAttribute('title', known ? `Type: ${label}` : 'Type: unknown');
   el.textContent = label;
   return el;
 }

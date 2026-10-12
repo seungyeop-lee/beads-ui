@@ -5,6 +5,7 @@
  * @import { WebSocket } from 'ws'
  */
 import { makeError, makeOk } from '../../app/protocol.js';
+import { isKnownType } from '../../app/utils/issue-type.js';
 import { runBd } from '../bd.js';
 import { debug } from '../logging.js';
 import { triggerMutationRefreshOnce } from './list-refresh.js';
@@ -31,14 +32,7 @@ export async function handleCreateIssue(ws, req) {
     return;
   }
   const args = ['create', title];
-  if (
-    typeof type === 'string' &&
-    (type === 'bug' ||
-      type === 'feature' ||
-      type === 'task' ||
-      type === 'epic' ||
-      type === 'chore')
-  ) {
+  if (typeof type === 'string' && isKnownType(type)) {
     args.push('-t', type);
   }
   if (typeof priority === 'number' && priority >= 0 && priority <= 4) {

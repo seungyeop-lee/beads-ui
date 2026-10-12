@@ -8,7 +8,11 @@ describe('utils/type-badge', () => {
       ['feature', 'Feature'],
       ['task', 'Task'],
       ['epic', 'Epic'],
-      ['chore', 'Chore']
+      ['chore', 'Chore'],
+      ['decision', 'Decision'],
+      ['spike', 'Spike'],
+      ['story', 'Story'],
+      ['milestone', 'Milestone']
     ];
     for (const [t, label] of types) {
       const el = createTypeBadge(t);

@@ -9,6 +9,7 @@ import { createSubscriptionStore } from './data/subscriptions-store.js';
 import { createHashRouter, parseHash, parseView } from './router.js';
 import { createStore } from './state.js';
 import { createActivityIndicator } from './utils/activity-indicator.js';
+import { isKnownType } from './utils/issue-type.js';
 import { debug } from './utils/logging.js';
 import { showToast } from './utils/toast.js';
 import { createBoardView } from './views/board.js';
@@ -385,15 +386,14 @@ export function bootstrap(root_element) {
       if (raw) {
         const obj = JSON.parse(raw);
         if (obj && typeof obj === 'object') {
-          const ALLOWED = ['bug', 'feature', 'task', 'epic', 'chore'];
           let parsed_type = '';
-          if (typeof obj.type === 'string' && ALLOWED.includes(obj.type)) {
+          if (typeof obj.type === 'string' && isKnownType(obj.type)) {
             parsed_type = obj.type;
           } else if (Array.isArray(obj.types)) {
             // Backwards compatibility: pick first valid from previous array format
             let first_valid = '';
             for (const it of obj.types) {
-              if (ALLOWED.includes(String(it))) {
+              if (isKnownType(String(it))) {
                 first_valid = /** @type {string} */ (it);
                 break;
               }

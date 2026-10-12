@@ -102,7 +102,7 @@ Common message types (mutations only; list reads removed):
 - `dep-add` payload: `{ a: string, b: string, view_id?: string }`
 - `dep-remove` payload: `{ a: string, b: string, view_id?: string }`
 - `create-issue` payload:
-  `{ title: string, type?: 'bug'|'feature'|'task'|'epic'|'chore', priority?: 0|1|2|3|4, description?: string }`
+  `{ title: string, type?: 'bug'|'feature'|'task'|'epic'|'chore'|'decision'|'spike'|'story'|'milestone', priority?: 0|1|2|3|4, description?: string }`
 - `update-assignee` payload: `{ id: string, assignee: string }`
 - `delete-issue` payload: `{ id: string }`
 - `label-add` / `label-remove` payload: `{ id: string, label: string }`
