@@ -90,7 +90,7 @@ function createTestIssueStores() {
 }
 
 describe('views/list', () => {
-  test('renders issues from push stores and navigates on row click', async () => {
+  test('renders issues from push stores and navigates on title click', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
     const issues = [
@@ -135,8 +135,10 @@ describe('views/list', () => {
     const badges = mount.querySelectorAll('.type-badge');
     expect(badges.length).toBeGreaterThanOrEqual(2);
 
-    const first = /** @type {HTMLElement} */ (rows[0]);
-    first.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const title = /** @type {HTMLElement} */ (
+      rows[0].querySelector('.row-title')
+    );
+    title.click();
     expect(window.location.hash).toBe('#/issues?issue=UI-1');
   });
 

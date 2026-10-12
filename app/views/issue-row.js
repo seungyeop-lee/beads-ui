@@ -157,6 +157,7 @@ export function createIssueRowRenderer(options) {
         tabindex="0"
         role="button"
         aria-label="Open issue"
+        @click=${() => navigate(id)}
         @keydown=${
           /** @param {KeyboardEvent} e */ (e) => {
             if (e.key === 'Enter') {
@@ -203,20 +204,6 @@ export function createIssueRowRenderer(options) {
   }
 
   /**
-   * @param {string} id
-   * @returns {(ev: Event) => void}
-   */
-  function makeRowClick(id) {
-    return (ev) => {
-      const el = /** @type {HTMLElement|null} */ (ev.target);
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
-        return;
-      }
-      navigate(id);
-    };
-  }
-
-  /**
    * @param {IssueRowData} it
    */
   function rowTemplate(it) {
@@ -227,7 +214,6 @@ export function createIssueRowRenderer(options) {
       role="row"
       class="${row_class} ${is_selected ? 'selected' : ''}"
       data-issue-id=${it.id}
-      @click=${makeRowClick(it.id)}
     >
       <td role="gridcell" class="mono">${createIssueIdRenderer(it.id)}</td>
       <td role="gridcell">${createTypeBadge(it.issue_type)}</td>

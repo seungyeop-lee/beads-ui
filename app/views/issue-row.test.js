@@ -102,7 +102,7 @@ describe('issue row renderer', () => {
     expect(row.className).toContain('selected');
   });
 
-  test('title Enter opens the issue and row click navigates', () => {
+  test('title click and Enter open the issue; other cells do not', () => {
     const navigate = vi.fn();
     const renderer = createIssueRowRenderer({
       navigate,
@@ -110,14 +110,16 @@ describe('issue row renderer', () => {
       requestRender: () => {}
     });
     const row = renderRow(renderer, { id: 'bdui-9', title: 'T' });
-    const title = row.querySelector('.row-title');
-    expect(title?.getAttribute('aria-label')).toBe('Open issue');
-    if (title) {
-      keyDown(/** @type {HTMLElement} */ (title), 'Enter');
-    }
-    row.querySelector('td')?.click();
+    const title = /** @type {HTMLElement} */ (row.querySelector('.row-title'));
+    expect(title.getAttribute('aria-label')).toBe('Open issue');
+    keyDown(title, 'Enter');
+    title.click();
     expect(navigate).toHaveBeenCalledTimes(2);
     expect(navigate).toHaveBeenCalledWith('bdui-9');
+
+    // Clicking outside the title (id cell) must not open the detail view.
+    row.querySelector('td')?.click();
+    expect(navigate).toHaveBeenCalledTimes(2);
   });
 
   test('title inline edit commits on Enter and cancels on Escape', async () => {

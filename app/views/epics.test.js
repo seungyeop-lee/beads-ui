@@ -112,7 +112,9 @@ describe('views/epics', () => {
     // priority asc puts UI-2 first.
     const rows = mount.querySelectorAll('tr.epic-row');
     expect(rows.length).toBe(2);
-    rows[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    rows[0]
+      .querySelector('.row-title')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(navCalls[0]).toBe('UI-2');
   });
 
@@ -788,7 +790,7 @@ describe('views/epics', () => {
       mount.querySelector('tr.epic-row td:nth-child(3) .row-title')
     );
     expect(titleSpan).not.toBeNull();
-    // Clicking the title text bubbles to the row and navigates to detail.
+    // Clicking the title text opens the issue detail directly.
     titleSpan?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(navCalls).toEqual(['UI-31']);
     // No edit input yet
