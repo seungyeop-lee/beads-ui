@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { constants } from 'node:os';
 import { resolveDbPath } from './db.js';
 import { debug } from './logging.js';
 
@@ -173,14 +174,18 @@ function runBdUnlocked(args, options = {}) {
     }
 
     /**
-     * @param {number | string | null} code
+     * @param {number | null} code
+     * @param {NodeJS.Signals | null} [signal]
      */
-    const finish = (code) => {
+    const finish = (code, signal = null) => {
       if (timer) {
         clearTimeout(timer);
       }
       resolve({
-        code: Number(code || 0),
+        // Node reports a null code when bd dies from a signal (e.g. the
+        // timeout SIGKILL); map it to 128 + signal number like a shell so
+        // truncated output is never treated as success.
+        code: code ?? 128 + (signal ? constants.signals[signal] : 0),
         stdout: out_chunks.join(''),
         stderr: err_chunks.join('')
       });
@@ -191,8 +196,8 @@ function runBdUnlocked(args, options = {}) {
       log('spawn error running %s %o', bin, err);
       finish(127);
     });
-    child.on('close', (code) => {
-      finish(code);
+    child.on('close', (code, signal) => {
+      finish(code, signal);
     });
   });
 }

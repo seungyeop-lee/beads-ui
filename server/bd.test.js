@@ -13,9 +13,10 @@ vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
 /**
  * @param {string} stdoutText
  * @param {string} stderrText
- * @param {number} code
+ * @param {number | null} code
+ * @param {NodeJS.Signals | null} [signal]
  */
-function makeFakeProc(stdoutText, stderrText, code) {
+function makeFakeProc(stdoutText, stderrText, code, signal = null) {
   const cp = /** @type {any} */ (new EventEmitter());
   const out = new PassThrough();
   const err = new PassThrough();
@@ -31,7 +32,7 @@ function makeFakeProc(stdoutText, stderrText, code) {
       err.write(stderrText);
     }
     err.end();
-    cp.emit('close', code);
+    cp.emit('close', code, signal);
   }, 0);
   return cp;
 }
@@ -120,6 +121,14 @@ describe('runBd', () => {
     const res = await runBd(['list']);
     expect(res.code).toBe(1);
     expect(res.stderr).toContain('boom');
+  });
+
+  test('signal termination maps to 128 + signal number like a shell', async () => {
+    mockedSpawn.mockReturnValueOnce(
+      makeFakeProc('{"truncated', '', null, 'SIGKILL')
+    );
+    const res = await runBd(['list']);
+    expect(res.code).toBe(137);
   });
 
   test('sets BEADS_DB for workspace-local SQLite db', async () => {
