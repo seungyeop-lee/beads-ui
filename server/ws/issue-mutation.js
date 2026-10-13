@@ -6,6 +6,7 @@
  */
 import { makeError, makeOk } from '../../app/protocol.js';
 import { runBd, runBdJson, showIssueArgs } from '../bd.js';
+import { getCurrentWorkspace } from './context.js';
 import { triggerMutationRefreshOnce } from './list-refresh.js';
 
 /**
@@ -27,7 +28,8 @@ export async function runIssueMutation(
   issue_id,
   options = {}
 ) {
-  const res = await runBd(bd_args);
+  const bd_options = { cwd: getCurrentWorkspace()?.root_dir };
+  const res = await runBd(bd_args, bd_options);
   if (res.code !== 0) {
     const classified = options.classifyError?.(res.stderr || '');
     if (classified) {
@@ -41,7 +43,7 @@ export async function runIssueMutation(
     );
     return;
   }
-  const shown = await runBdJson(showIssueArgs(issue_id));
+  const shown = await runBdJson(showIssueArgs(issue_id), bd_options);
   if (shown.code !== 0) {
     ws.send(
       JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))

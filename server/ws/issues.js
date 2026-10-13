@@ -8,6 +8,7 @@ import { makeError, makeOk } from '../../app/protocol.js';
 import { isKnownType } from '../../app/utils/issue-type.js';
 import { runBd } from '../bd.js';
 import { debug } from '../logging.js';
+import { getCurrentWorkspace } from './context.js';
 import { triggerMutationRefreshOnce } from './list-refresh.js';
 
 const log = debug('ws');
@@ -41,7 +42,7 @@ export async function handleCreateIssue(ws, req) {
   if (typeof description === 'string' && description.length > 0) {
     args.push('-d', description);
   }
-  const res = await runBd(args);
+  const res = await runBd(args, { cwd: getCurrentWorkspace()?.root_dir });
   if (res.code !== 0) {
     ws.send(
       JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -74,7 +75,9 @@ export async function handleDeleteIssue(ws, req) {
     );
     return;
   }
-  const res = await runBd(['delete', id, '--force']);
+  const res = await runBd(['delete', id, '--force'], {
+    cwd: getCurrentWorkspace()?.root_dir
+  });
   if (res.code !== 0) {
     ws.send(
       JSON.stringify(

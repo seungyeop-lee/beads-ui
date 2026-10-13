@@ -6,6 +6,7 @@
  */
 import { makeError, makeOk } from '../../app/protocol.js';
 import { getGitUserName, runBd, runBdJson } from '../bd.js';
+import { getCurrentWorkspace } from './context.js';
 
 /**
  * Handle `get-comments`: payload { id: string }.
@@ -23,7 +24,9 @@ export async function handleGetComments(ws, req) {
     );
     return;
   }
-  const res = await runBdJson(['comments', id, '--json']);
+  const res = await runBdJson(['comments', id, '--json'], {
+    cwd: getCurrentWorkspace()?.root_dir
+  });
   if (res.code !== 0) {
     ws.send(
       JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -61,13 +64,14 @@ export async function handleAddComment(ws, req) {
 
   // Get git user name for author attribution. bd 1.x removed the
   // `--author` flag; the global `--actor` flag sets the comment author.
-  const author = await getGitUserName();
+  const bd_options = { cwd: getCurrentWorkspace()?.root_dir };
+  const author = await getGitUserName(bd_options);
   const args = ['comment', id, text.trim()];
   if (author) {
     args.push('--actor', author);
   }
 
-  const res = await runBd(args);
+  const res = await runBd(args, bd_options);
   if (res.code !== 0) {
     ws.send(
       JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -76,7 +80,7 @@ export async function handleAddComment(ws, req) {
   }
 
   // Return updated comments list
-  const comments = await runBdJson(['comments', id, '--json']);
+  const comments = await runBdJson(['comments', id, '--json'], bd_options);
   if (comments.code !== 0) {
     ws.send(
       JSON.stringify(makeError(req, 'bd_error', comments.stderr || 'bd failed'))

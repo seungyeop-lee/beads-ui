@@ -69,7 +69,10 @@ describe('get-comments handler', () => {
     expect(reply.payload).toEqual(comments);
 
     // Verify bd was called with correct args
-    expect(rj).toHaveBeenCalledWith(['comments', 'UI-1', '--json']);
+    expect(rj).toHaveBeenCalledWith(
+      ['comments', 'UI-1', '--json'],
+      expect.anything()
+    );
   });
 
   test('returns error when issue id missing', async () => {
@@ -158,13 +161,10 @@ describe('add-comment handler', () => {
     expect(reply.payload).toEqual(updatedComments);
 
     // bd 1.x removed --author; author attribution uses the global --actor flag
-    expect(rb).toHaveBeenCalledWith([
-      'comment',
-      'UI-1',
-      'New comment',
-      '--actor',
-      'Test User'
-    ]);
+    expect(rb).toHaveBeenCalledWith(
+      ['comment', 'UI-1', 'New comment', '--actor', 'Test User'],
+      expect.anything()
+    );
   });
 
   test('adds comment without author when git user name is empty', async () => {
@@ -196,7 +196,10 @@ describe('add-comment handler', () => {
     expect(reply.ok).toBe(true);
 
     // Verify bd was called without --actor
-    expect(rb).toHaveBeenCalledWith(['comment', 'UI-1', 'Anonymous comment']);
+    expect(rb).toHaveBeenCalledWith(
+      ['comment', 'UI-1', 'Anonymous comment'],
+      expect.anything()
+    );
   });
 
   test('returns error when text is empty', async () => {
