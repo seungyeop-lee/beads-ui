@@ -1,3 +1,6 @@
+> [!WARNING] **This project is no longer maintained.** Use
+> [beads-desk](https://github.com/seungyeop-lee/beads-desk) instead.
+
 <h1 align="center">
   Beads UI
 </h1>
